@@ -49,8 +49,8 @@ function router() {
 	  break;
 
 	default:
-	  http_response_code(404);
-	  print('unknown route');
+	  print('PHP testserver\n');
+	  print('Use one of the available routes for specific tests.\n');
 	}
 }
 

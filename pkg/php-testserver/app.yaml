@@ -3,6 +3,7 @@ name: php-server
 owner: wasmer-tests
 package: .
 domains:
-  - php-testserver.wasmer.app
+- php-testserver.wasmer.app
 scaling:
   mode: single_concurrency
+app_id: da_R9EIBt1Uqd5R
