@@ -23,35 +23,42 @@ function handler_file_get_contents($args) {
 }
 
 function router() {
-	$path = ltrim($_SERVER['SCRIPT_NAME'], '/');
+  $path = ltrim($_SERVER['SCRIPT_NAME'], '/');
 
-	$route = '';
-	$args = '';
+  $route = '';
+  $args = '';
 
-	if (str_contains($path, '/')) {
-	  $parts = explode('/', $path, 2);
-	  $route = $parts[0];
-	  $args = $parts[1];
-	} else {
-	  $route = $path;
-	}
+  if (str_contains($path, '/')) {
+    $parts = explode('/', $path, 2);
+    $route = $parts[0];
+    $args = $parts[1];
+  } else {
+    $route = $path;
+  }
 
-	switch ($route) {
+  switch ($route) {
   // Show phpinfo
   case 'phpinfo':
     phpinfo();
-    exit;
+    break;
 
-	// Send an http request to the specified URL and return the body, using
-	// the get_file_contents() function.
-	case 'file-get-contents':
-	  handler_file_get_contents($args);
-	  break;
+  case 'dns-resolve':
+    $ip = gethostbyname($args);
+    print(json_encode([$ip], JSON_PRETTY_PRINT));
+    break;
 
-	default:
-	  print('PHP testserver\n');
-	  print('Use one of the available routes for specific tests.\n');
-	}
+  // Send an http request to the specified URL and return the body, using
+  // the get_file_contents() function.
+  case 'file-get-contents':
+    handler_file_get_contents($args);
+    break;
+
+  default:
+    print('<html><body>PHP testserver<br/><br/>');
+    print('Use one of the available routes for specific tests.');
+    print('</body></html>');
+    break;
+  }
 }
 
 router();
