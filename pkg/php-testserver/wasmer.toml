@@ -1,0 +1,16 @@
+[package]
+name = "wasmer-tests/php-testserver"
+version = "0.1.0"
+
+[dependencies]
+"php/php" = "=8.3.4-rc.2"
+
+[fs]
+"/app" = "app"
+
+[[command]]
+name = "run"
+module = "php/php:php"
+runner = "wasi"
+[command.annotations.wasi]
+main-args = ["-S", "localhost:8080", "/app/index.php"]
