@@ -1,0 +1,16 @@
+[package]
+name = "wasmer-tests/python-testserver"
+version = "0.1.4"
+
+[dependencies]
+"wasmer/python" = "^3.12.6"
+
+[fs]
+"/src" = "./src"
+
+[[command]]
+name = "server"
+module = "wasmer/python:python"
+runner = "wasi"
+[command.annotations.wasi]
+main-args = ["/src/server.py"]

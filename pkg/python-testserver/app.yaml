@@ -1,0 +1,5 @@
+kind: wasmer.io/App.v0
+name: python-testserver
+owner: wasmer-tests
+package: .
+app_id: da_R36ILtlUYrMn
