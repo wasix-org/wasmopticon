@@ -1,0 +1,8 @@
+kind: wasmer.io/App.v0
+name: php-playground
+owner: wasmer-tests
+package: .
+domains:
+- php-playground.wasmer.app
+scaling:
+  mode: single_concurrency
