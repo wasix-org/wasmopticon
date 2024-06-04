@@ -1,0 +1,16 @@
+[package]
+name = "wasmer-tests/php-playground"
+version = "0.1.1"
+
+[dependencies]
+"php/php" = "^8.3.4"
+
+[fs]
+"/app" = "app"
+
+[[command]]
+name = "run"
+module = "php/php:php"
+runner = "wasi"
+[command.annotations.wasi]
+main-args = ["-S", "localhost:8080", "-t", "/app"]
