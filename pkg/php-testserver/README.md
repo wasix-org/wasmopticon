@@ -1,4 +1,4 @@
-# php testserver
+# php-testserver
 
 PHP webserver using the PHP builtin development server.
 
