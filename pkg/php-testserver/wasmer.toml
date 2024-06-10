@@ -14,3 +14,5 @@ module = "php/php:php"
 runner = "wasi"
 [command.annotations.wasi]
 main-args = ["-S", "localhost:8080", "/app/index.php"]
+# Custom php.ini config
+env = ["PHPRC=/config/php.ini"]
