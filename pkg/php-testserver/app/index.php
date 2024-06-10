@@ -1,7 +1,8 @@
 <?php
 
 error_reporting(E_ALL);
-ini_set('display_errors', 1);
+ini_set('display_errors', '1');
+ini_set('display_startup_errors', '1');
 
 function handler_file_get_contents($args) {
   if ($args === '') {
@@ -19,6 +20,27 @@ function handler_file_get_contents($args) {
   }
 
   $body = file_get_contents($args);
+  print($body);
+}
+
+function handler_echo() {
+  // TODO: different formats...
+  
+  $data = [
+    "uri" => $_SERVER["REQUEST_URI"],
+    "method" => $_SERVER["REQUEST_METHOD"],
+    "headers" => getallheaders(),
+  ];
+  $body = json_encode($data, JSON_PRETTY_PRINT);
+  echo $body;
+}
+
+function handler_generate() {
+  /// Get the "body-size" query param.
+  $body_size = $_GET['body-size'] ?? 0;
+
+  // repeat the string to the desired size.
+  $body = str_repeat('0', $body_size);
   print($body);
 }
 
@@ -40,6 +62,14 @@ function router() {
   // Show phpinfo
   case 'phpinfo':
     phpinfo();
+    break;
+
+  case 'echo':
+    handler_echo();
+    break;
+
+  case 'generate':
+    handler_generate();
     break;
 
   case 'dns-resolve':
