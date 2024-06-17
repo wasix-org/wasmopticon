@@ -44,6 +44,79 @@ function handler_generate() {
   print($body);
 }
 
+function handler_fs($args) {
+  $parts = explode('/', $args, 2);
+  $action = $parts[0];
+
+  $path = null;
+  if (count($parts) > 1) {
+    $path = $parts[1];
+  }
+  if ($path !== null && $path[0] !== '/') {
+    $path = "/$path";
+  }
+
+  switch ($parts[0]) {
+    case 'read':
+      if ($path === null) {
+        throw new Exception('URL must end with a path to read');
+      }
+      if (!file_exists($path)) {
+        throw new Exception("File does not exist: '$path'");
+      }
+
+      $content = file_get_contents($path);
+      print($content);
+      break;
+
+    case 'write':
+      if ($path === null) {
+        throw new Exception('URL must end with a path to write');
+      }
+
+      // Ensure parent dir exists
+      $dir = dirname($path);
+      if (!is_dir($dir)) {
+        mkdir($dir, 0777, true);
+      }
+
+      $content = file_get_contents('php://input');
+      $len = strlen($content);
+      file_put_contents($path, $content);
+      echo "file contents writen to '$path' ($len bytes)";
+      break;
+
+    case 'list':
+      if ($path === null) {
+        throw new Exception('URL must end with a path to list');
+      }
+      // check if path is a directory
+      if (!is_dir($path)) {
+        throw new Exception("Path is not a directory: '$path'");
+      }
+
+      $files = scandir($path);
+
+      $accept = $_SERVER['HTTP_ACCEPT'] ?? null;
+      if ($accept === 'application/json') {
+        print(json_encode($files, JSON_PRETTY_PRINT));
+      } else {
+        $out = '';
+        foreach ($files as $file) {
+          if ($file === '.' || $file === '..') {
+            continue;
+          }
+          $out .= "$file\n";
+        }
+        print($out);
+      }
+      break;
+
+    default:
+      throw new Exception("Invalid fs command '$action'");
+  }
+}
+
 function router() {
   $path = ltrim($_SERVER['SCRIPT_NAME'], '/');
 
@@ -70,6 +143,10 @@ function router() {
 
   case 'generate':
     handler_generate();
+    break;
+
+  case 'fs':
+    handler_fs($args);
     break;
 
   case 'dns-resolve':
