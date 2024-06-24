@@ -16,7 +16,7 @@ async function handler(request) {
   const parts = path.split("/");
 
   if (parts.length === 0) {
-    return new Response("WinterJS testserver - use an available test route");
+    return new Response("WinterJS testserver - use one of the available test routes!");
   }
 
   const route = parts[0];
@@ -25,15 +25,39 @@ async function handler(request) {
     case 'http-proxy':
       return handlerHttpProxy(request, rest);
 
+    case 'delay':
+      return handlerDelay(request, rest);
+
     default:
       return new Response(`unknown route '${route}'`, { status: 400 });
   }
 }
 
+async function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function handlerDelay(req, parts) {
+  // read duration query param
+  const url = new URL(req.url);
+  const duration = url.searchParams.get('duration');
+  if (!duration) {
+    return new Response("missing duration query param, eg: ?duration=10s", { status: 400 });
+  }
+
+  if (!/^\d+s$/.test(duration)) {
+    return new Response("duration must be a number followed by 's', eg: ?duration=10s", { status: 400 });
+  }
+  const seconds = parseInt(duration.slice(0, -1));
+  await sleep(seconds * 1000);
+
+  return new Response(`delayed for ${seconds} seconds`);
+}
+
 async function handlerHttpProxy(req, parts) {
   const url = parts.join("/");
 
-  console.log({parts});
+  console.log({ parts });
   try {
     new URL(url);
   } catch (e) {
