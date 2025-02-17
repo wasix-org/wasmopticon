@@ -1,0 +1,16 @@
+[package]
+name = "wasmer-tests/php-db-example"
+version = "0.1.6"
+
+[dependencies]
+"php/php" = "8.*"
+
+[fs]
+"/app" = "app"
+
+[[command]]
+name = "app"
+module = "php/php:php"
+runner = "wasi"
+[command.annotations.wasi]
+main-args = ["-S", "localhost:8080", "-t", "/app"]

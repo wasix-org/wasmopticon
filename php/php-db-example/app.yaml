@@ -1,0 +1,10 @@
+name: php-db-example
+app_id: da_nkPI5tJU3ZoR
+owner: wasmer-tests
+package: '.'
+capabilities:
+  database:
+    engine: mysql
+scaling:
+  mode: single_concurrency
+kind: wasmer.io/App.v0
