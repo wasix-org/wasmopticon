@@ -1,17 +1,18 @@
 [package]
-name = "wasmer-tests/php-testserver"
-version = "0.1.5"
+name = "wasmer-tests/php-testserver-eh"
+version = "0.1.8"
 
 [dependencies]
-"php/php" = "^8.3.4"
+"php/php-eh" = "=8.3.404-beta.4"
 
 [fs]
 "/app" = "app"
 
 [[command]]
 name = "run"
-module = "php/php:php"
+module = "php/php-eh:php"
 runner = "wasi"
+
 [command.annotations.wasi]
 env = ["PHPRC=/config/php.ini"]
 main-args = ["-S", "localhost:8080", "/app/index.php"]

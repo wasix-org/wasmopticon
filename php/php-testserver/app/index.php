@@ -4,6 +4,9 @@ error_reporting(E_ALL);
 ini_set('display_errors', '1');
 ini_set('display_startup_errors', '1');
 
+require_once 'bench_url.php';
+require_once 'bench_php.php';
+
 function handler_file_get_contents($args) {
   if ($args === '') {
     throw new Exception('Must provide a valid URI for file_get_contents');
@@ -117,6 +120,23 @@ function handler_fs($args) {
   }
 }
 
+function handler_benchmark_url_fetch() {
+  $url = $_GET['url'] ?? null;
+  $count = $_GET['count'] ?? 1;
+
+  if ($url === null) {
+    throw new Exception('Missing required parameter: url');
+  }
+
+  $results = benchmark_website($url, $count);
+  print(json_encode($results, JSON_PRETTY_PRINT));
+}
+
+function handler_benchmark_php() {
+  $results = PHPBench::bench();
+  print(json_encode($results, JSON_PRETTY_PRINT));
+}
+
 function router() {
   $path = ltrim($_SERVER['SCRIPT_NAME'], '/');
 
@@ -147,6 +167,15 @@ function router() {
 
   case 'fs':
     handler_fs($args);
+    break;
+
+
+  case 'benchmark-php':
+    handler_benchmark_php();
+    break;
+
+  case 'benchmark-url-fetch':
+    handler_benchmark_url_fetch();
     break;
 
   case 'dns-resolve':
