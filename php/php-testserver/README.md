@@ -4,6 +4,9 @@ PHP webserver using the PHP builtin development server.
 
 Supported routes:
 
+* '/env'
+  Get environment variables as a JSON object.
+
 * `/phpinfo`:
   Just dump the regular `phpinfo()` data.
 

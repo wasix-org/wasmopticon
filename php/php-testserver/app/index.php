@@ -157,6 +157,12 @@ function router() {
     phpinfo();
     break;
 
+  case 'env':
+    // Print env vars.
+    header('Content-Type: application/json');
+    print(json_encode(getenv(), JSON_PRETTY_PRINT));
+    break;
+
   case 'echo':
     handler_echo();
     break;
