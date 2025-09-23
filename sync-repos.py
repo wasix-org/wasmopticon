@@ -2,7 +2,7 @@
 """
 Snapshot templates from git repositories defined in a TOML file.
 
-Reads an adjacent TOML file `tracked-repositories.toml` with entries:
+Reads an adjacent TOML file `tracked-repos.toml` with entries:
 
   [[repositories]]
   name = "..."
