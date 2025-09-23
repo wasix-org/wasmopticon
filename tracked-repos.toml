@@ -1,0 +1,27 @@
+[[repositories]]
+name = "fastapi_pandoc"
+giturl = "git@github.com:wasmer-examples/python-fastapi-pandoc-converter.git"
+store_path = "python"
+git_ref = "main"
+description = "FastAPI and Pandoc"
+
+[[repositories]]
+name = "astro"
+giturl = "git@github.com:wasmer-examples/astro-wasmer-starter.git"
+store_path = "static"
+git_ref = "main"
+description = "Astro.build example"
+
+[[repositories]]
+name = "php_simple"
+giturl = "git@github.com:wasmer-examples/php-wasmer-starter.git"
+store_path = "php"
+git_ref = "main"
+description = "Simple PHP starter page"
+
+[[repositories]]
+name = "django"
+giturl = "git@github.com:wasmer-examples/django-wasmer-starter.git"
+store_path = "python"
+git_ref = "main"
+description = "Django example with MYSQL"
