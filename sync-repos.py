@@ -309,7 +309,7 @@ def parse_args(argv: Optional[Iterable[str]] = None) -> argparse.Namespace:
         "--config",
         dest="config_path",
         type=Path,
-        default=Path(__file__).with_name("./tracked-repos.toml"),
+        default=Path(__file__).with_name("tracked-repos.toml"),
         help=(
             "Path to TOML config. If omitted, looks for tracked-repos.toml "
             "next to the script."
