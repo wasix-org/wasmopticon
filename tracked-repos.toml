@@ -6,13 +6,6 @@ git_ref = "main"
 description = "FastAPI and Pandoc"
 
 [[repositories]]
-name = "astro"
-giturl = "git@github.com:wasmer-examples/astro-wasmer-starter.git"
-store_path = "static"
-git_ref = "main"
-description = "Astro.build example"
-
-[[repositories]]
 name = "php_simple"
 giturl = "git@github.com:wasmer-examples/php-wasmer-starter.git"
 store_path = "php"
