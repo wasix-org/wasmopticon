@@ -14,4 +14,4 @@ deploy:
 		--wasmer-deploy \
 		--wasmer-registry https://registry.wasmer.io \
 		--wasmer-app-owner wasmer-examples \
-		--wasmer-app-name pandoc-converter-example
+		--wasmer-app-name python-fastapi-websockets

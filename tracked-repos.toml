@@ -1,11 +1,4 @@
 [[repositories]]
-name = "fastapi_pandoc"
-giturl = "git@github.com:wasmer-examples/python-fastapi-pandoc-converter.git"
-store_path = "python"
-git_ref = "main"
-description = "FastAPI and Pandoc"
-
-[[repositories]]
 name = "php_simple"
 giturl = "git@github.com:wasmer-examples/php-wasmer-starter.git"
 store_path = "php"
@@ -18,3 +11,31 @@ giturl = "git@github.com:wasmer-examples/django-wasmer-starter.git"
 store_path = "python"
 git_ref = "main"
 description = "Django example with MYSQL"
+
+[[repositories]]
+name = "fastapi_websockets"
+giturl = "git@github.com:wasmer-examples/python-fastapi-websockets.git"
+store_path = "python"
+git_ref = "main"
+description = "FastAPI with websockets"
+
+[[repositories]]
+name = "fastapi"
+giturl = "git@github.com:wasmer-examples/fastapi-wasmer-starter.git"
+store_path = "python"
+git_ref = "main"
+description = "Simple FastAPI"
+
+[[repositories]]
+name = "mcp_server"
+giturl = "git@github.com:wasmer-examples/python-mcp-chatgpt-starter.git"
+store_path = "python"
+git_ref = "main"
+description = "MCP server example"
+
+[[repositories]]
+name = "langchain"
+giturl = "git@github.com:wasmer-examples/python-langchain-starter.git"
+store_path = "python"
+git_ref = "main"
+description = "LangChain server"
