@@ -291,6 +291,9 @@ def process_repo(
         # Export only tracked files to target and write marker
         export_tracked_files(temp_dir, target_dir)
         write_marker_with_hash(target_dir, commit_hash)
+
+        if temp_dir.exists():
+            shutil.rmtree(temp_dir)
         return True, None
     except Exception as e:
         try:
