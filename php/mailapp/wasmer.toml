@@ -1,0 +1,17 @@
+[package]
+name = "wasmer/mailapp"
+version = "0.1.0"
+
+[dependencies]
+"wasmer/phpix-32" = "^0.1.12803"
+
+[fs]
+"/app" = "."
+
+[[command]]
+name = "run"
+module = "wasmer/phpix-32:phpix"
+runner = "wasi"
+
+[command.annotations.wasi]
+main-args = ["-t", "/app", "-S", "0.0.0.0:8080"]
