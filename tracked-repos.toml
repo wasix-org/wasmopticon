@@ -6,13 +6,6 @@ git_ref = "main"
 description = "Simple PHP starter page"
 
 [[repositories]]
-name = "django"
-giturl = "git@github.com:wasmer-examples/django-wasmer-starter.git"
-store_path = "python"
-git_ref = "main"
-description = "Django example with MYSQL"
-
-[[repositories]]
 name = "fastapi_websockets"
 giturl = "git@github.com:wasmer-examples/python-fastapi-websockets.git"
 store_path = "python"
