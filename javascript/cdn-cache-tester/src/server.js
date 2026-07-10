@@ -296,6 +296,8 @@ function renderUatPage() {
     <script>
       const stepElement = document.querySelector("#uat-step");
       const progressItems = [...document.querySelectorAll("#uat-progress li")];
+      const propagationAttempts = 12;
+      const propagationDelayMs = 1500;
       let uiCache = null;
       let cliCache = null;
 
@@ -347,29 +349,49 @@ function renderUatPage() {
         button.addEventListener("click", onConfirm);
       }
 
-      async function expectUncached(key) {
-        const first = await probe(key);
-        const second = await probe(key);
-        if (first.originRequestId === second.originRequestId) {
-          throw new Error("The same origin response was returned twice. CDN caching appears to be enabled; disable it before starting the UAT.");
+      async function expectUncached(key, onAttempt) {
+        let previous = null;
+
+        for (let attempt = 1; attempt <= propagationAttempts; attempt += 1) {
+          onAttempt(attempt, propagationAttempts);
+          const current = await probe(key);
+          if (previous && previous.originRequestId !== current.originRequestId) {
+            return current;
+          }
+          previous = current;
+          if (attempt < propagationAttempts) {
+            await new Promise((resolve) => setTimeout(resolve, propagationDelayMs));
+          }
         }
-        return second;
+
+        throw new Error("No uncached response was observed after " + propagationAttempts + " attempts. CDN disablement may still be propagating; wait a moment and retry.");
       }
 
-      async function expectCached(key) {
-        const first = await probe(key);
-        const second = await probe(key);
-        if (first.originRequestId !== second.originRequestId) {
-          throw new Error("Two different origin responses were returned. CDN caching does not appear to be enabled yet.");
+      async function expectCached(key, onAttempt) {
+        let previous = null;
+
+        for (let attempt = 1; attempt <= propagationAttempts; attempt += 1) {
+          onAttempt(attempt, propagationAttempts);
+          const current = await probe(key);
+          if (previous && previous.originRequestId === current.originRequestId) {
+            return current;
+          }
+          previous = current;
+          if (attempt < propagationAttempts) {
+            await new Promise((resolve) => setTimeout(resolve, propagationDelayMs));
+          }
         }
-        return second;
+
+        throw new Error("No cached response was observed after " + propagationAttempts + " attempts. CDN enablement may still be propagating; wait a moment and retry.");
       }
 
       async function checkInitialState() {
-        setProgress(0);
-        showChecking("Checking initial state", "Confirming responses are not cached before the UAT begins…");
-        try {
-          await expectUncached(probeKey("initial"));
+                  setProgress(0);
+                  showChecking("Checking initial state", "Confirming responses are not cached before the UAT begins…");
+                  try {
+                    await expectUncached(probeKey("initial"), (attempt, total) => {
+                      showChecking("Checking initial state", "Attempt " + attempt + "/" + total + ": confirming repeated requests reach the origin…");
+                    });
           showAction(
             "Enable CDN Cache in the dashboard",
             "Open this app in the Wasmer dashboard, go to App Settings → CDN Cache, and enable CDN Cache.",
@@ -384,9 +406,11 @@ function renderUatPage() {
       async function checkUiEnabled() {
         setProgress(1);
         showChecking("Checking dashboard enablement", "Priming a long-lived response, then requesting it again…");
-        try {
-          const key = probeKey("ui-cache");
-          uiCache = { key, response: await expectCached(key) };
+                  try {
+                    const key = probeKey("ui-cache");
+                    uiCache = { key, response: await expectCached(key, (attempt, total) => {
+                      showChecking("Checking dashboard enablement", "Attempt " + attempt + "/" + total + ": priming and checking the same long-lived response…");
+                    }) };
           setProgress(2);
           showAction(
             "Purge the cache in the dashboard",
@@ -419,9 +443,11 @@ function renderUatPage() {
       }
 
       async function checkUiDisabled() {
-        showChecking("Checking dashboard disablement", "Confirming repeated requests now reach the origin…");
-        try {
-          await expectUncached(probeKey("ui-disabled"));
+                  showChecking("Checking dashboard disablement", "Confirming repeated requests now reach the origin…");
+                  try {
+                    await expectUncached(probeKey("ui-disabled"), (attempt, total) => {
+                      showChecking("Checking dashboard disablement", "Attempt " + attempt + "/" + total + ": confirming repeated requests reach the origin…");
+                    });
           setProgress(4);
           showAction(
             "Enable CDN Cache with the CLI",
@@ -437,9 +463,11 @@ function renderUatPage() {
 
       async function checkCliEnabled() {
         showChecking("Checking CLI enablement", "Priming a new 24-hour response, then requesting it again…");
-        try {
-          const key = probeKey("cli-cache");
-          cliCache = { key, response: await expectCached(key) };
+                  try {
+                    const key = probeKey("cli-cache");
+                    cliCache = { key, response: await expectCached(key, (attempt, total) => {
+                      showChecking("Checking CLI enablement", "Attempt " + attempt + "/" + total + ": priming and checking the same long-lived response…");
+                    }) };
           setProgress(5);
           showAction(
             "Purge the cache with the CLI",
@@ -474,9 +502,11 @@ function renderUatPage() {
       }
 
       async function checkCliDisabled() {
-        showChecking("Checking CLI disablement", "Confirming repeated requests reach the origin again…");
-        try {
-          await expectUncached(probeKey("cli-disabled"));
+                  showChecking("Checking CLI disablement", "Confirming repeated requests reach the origin again…");
+                  try {
+                    await expectUncached(probeKey("cli-disabled"), (attempt, total) => {
+                      showChecking("Checking CLI disablement", "Attempt " + attempt + "/" + total + ": confirming repeated requests reach the origin…");
+                    });
           setProgress(progressItems.length);
           stepElement.setAttribute("aria-busy", "false");
           stepElement.innerHTML = '<div class="notice success"><h2>UAT complete</h2><p>Dashboard and CLI enable, purge, and disable flows all behaved as expected.</p></div><button class="button" type="button">Run UAT again</button>';
