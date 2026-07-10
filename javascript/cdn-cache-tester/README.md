@@ -14,7 +14,7 @@ Available routes:
 
 Each current-time response includes an ISO timestamp, Unix timestamp, unique origin request ID, and a `Cache-Control: public, max-age=<seconds>` header. The client-side test runner verifies that the CDN caches a response, that `Cache-Control: no-cache` on a client request bypasses a primed response, and that a cached `30s` response is replaced after waiting 31 seconds.
 
-The app is deployed with CDN caching disabled so the UAT wizard can verify the initial state before guiding the operator through dashboard and CLI controls.
+The app is deployed with CDN caching disabled so the UAT wizard can verify the initial state before guiding the operator through dashboard and CLI controls. All checks are driven directly by browser JavaScript; the server only returns the cacheable diagnostic response.
 
 ## Run locally
 

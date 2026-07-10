@@ -34,10 +34,6 @@ const server = http.createServer(async (request, response) => {
       return sendCurrentTime(response, { spec: "uat", seconds: 24 * 60 * 60 }, request.method === "HEAD");
     }
 
-    if (request.method === "GET" && url.pathname === "/uat-probe") {
-      return sendUatProbe(request, response, url);
-    }
-
     const duration = matchCurrentTimeRoute(url.pathname);
     if ((request.method === "GET" || request.method === "HEAD") && duration) {
       return sendCurrentTime(response, duration, request.method === "HEAD");
@@ -95,32 +91,6 @@ function sendCurrentTime(response, duration, headOnly) {
     "x-origin-generated-at": generatedAt
   });
   response.end(headOnly ? undefined : body);
-}
-
-async function sendUatProbe(request, response, url) {
-  const key = url.searchParams.get("key") || "";
-  if (!/^[a-zA-Z0-9-]{1,100}$/.test(key)) {
-    return sendJson(response, { error: "A valid probe key is required." }, 400);
-  }
-
-  const target = new URL("/uat-data", requestOrigin(request));
-  target.searchParams.set("key", key);
-  const headers = { accept: "application/json" };
-  if (url.searchParams.get("no-cache") === "1") {
-    headers["cache-control"] = "no-cache";
-  }
-
-  const upstream = await fetch(target, { headers, redirect: "manual" });
-  const body = await upstream.text();
-  let data = null;
-  try { data = JSON.parse(body); } catch {}
-
-  return sendJson(response, {
-    status: upstream.status,
-    cacheControl: upstream.headers.get("cache-control"),
-    originRequestId: data?.originRequestId || null,
-    generatedAt: data?.generatedAt || null
-  });
 }
 
 function requestOrigin(request) {
@@ -190,8 +160,12 @@ function renderTestPage() {
       }
 
       async function snapshot(url, requestHeaders = {}) {
+        const headers = { accept: "application/json", ...requestHeaders };
+        if (!("cache-control" in headers)) {
+          headers["if-none-match"] = '"client-probe-' + crypto.randomUUID() + '"';
+        }
         const response = await fetch(url, {
-          headers: { accept: "application/json", ...requestHeaders },
+          headers,
           redirect: "manual"
         });
         const body = await response.text();
@@ -322,7 +296,6 @@ function renderUatPage() {
     <script>
       const stepElement = document.querySelector("#uat-step");
       const progressItems = [...document.querySelectorAll("#uat-progress li")];
-      let stepIndex = 0;
       let uiCache = null;
       let cliCache = null;
 
@@ -331,19 +304,21 @@ function renderUatPage() {
       }
 
       async function probe(key) {
-        const response = await fetch("/uat-probe?key=" + encodeURIComponent(key), {
-          headers: { accept: "application/json" },
-          cache: "no-store"
+        const response = await fetch("/uat-data?key=" + encodeURIComponent(key), {
+          headers: {
+            accept: "application/json",
+            "if-none-match": '"uat-client-' + crypto.randomUUID() + '"'
+          },
+          redirect: "manual"
         });
         const result = await response.json();
-        if (!response.ok || result.status !== 200 || !result.originRequestId) {
-          throw new Error(result.error || "Probe request failed with HTTP " + (result.status || response.status));
+        if (!response.ok || !result.originRequestId) {
+          throw new Error(result.error || "Probe request failed with HTTP " + response.status);
         }
         return result;
       }
 
       function setProgress(index) {
-        stepIndex = index;
         progressItems.forEach((item, itemIndex) => {
           item.className = itemIndex < index ? "done" : itemIndex === index ? "active" : "";
         });
@@ -592,16 +567,6 @@ function sendHtml(response, html, statusCode, headOnly, extraHeaders = {}) {
     ...extraHeaders
   });
   response.end(headOnly ? undefined : html);
-}
-
-function sendJson(response, value, statusCode = 200) {
-  const body = JSON.stringify(value) + "\n";
-  response.writeHead(statusCode, {
-    "cache-control": "no-store",
-    "content-length": Buffer.byteLength(body),
-    "content-type": "application/json; charset=utf-8"
-  });
-  response.end(body);
 }
 
 function formatSeconds(seconds) {
