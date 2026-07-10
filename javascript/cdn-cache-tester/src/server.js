@@ -24,6 +24,20 @@ const server = http.createServer(async (request, response) => {
       });
     }
 
+    if ((request.method === "GET" || request.method === "HEAD") && url.pathname === "/uat") {
+      return sendHtml(response, renderUatPage(), 200, request.method === "HEAD", {
+        "cache-control": "no-store"
+      });
+    }
+
+    if ((request.method === "GET" || request.method === "HEAD") && url.pathname === "/uat-data") {
+      return sendCurrentTime(response, { spec: "uat", seconds: 24 * 60 * 60 }, request.method === "HEAD");
+    }
+
+    if (request.method === "GET" && url.pathname === "/uat-probe") {
+      return sendUatProbe(request, response, url);
+    }
+
     const duration = matchCurrentTimeRoute(url.pathname);
     if ((request.method === "GET" || request.method === "HEAD") && duration) {
       return sendCurrentTime(response, duration, request.method === "HEAD");
@@ -75,11 +89,38 @@ function sendCurrentTime(response, duration, headOnly) {
 
   response.writeHead(200, {
     "cache-control": cacheControl,
+    "content-length": Buffer.byteLength(body),
     "content-type": "application/json; charset=utf-8",
     "x-cache-duration": duration.spec,
     "x-origin-generated-at": generatedAt
   });
   response.end(headOnly ? undefined : body);
+}
+
+async function sendUatProbe(request, response, url) {
+  const key = url.searchParams.get("key") || "";
+  if (!/^[a-zA-Z0-9-]{1,100}$/.test(key)) {
+    return sendJson(response, { error: "A valid probe key is required." }, 400);
+  }
+
+  const target = new URL("/uat-data", requestOrigin(request));
+  target.searchParams.set("key", key);
+  const headers = { accept: "application/json" };
+  if (url.searchParams.get("no-cache") === "1") {
+    headers["cache-control"] = "no-cache";
+  }
+
+  const upstream = await fetch(target, { headers, redirect: "manual" });
+  const body = await upstream.text();
+  let data = null;
+  try { data = JSON.parse(body); } catch {}
+
+  return sendJson(response, {
+    status: upstream.status,
+    cacheControl: upstream.headers.get("cache-control"),
+    originRequestId: data?.originRequestId || null,
+    generatedAt: data?.generatedAt || null
+  });
 }
 
 function requestOrigin(request) {
@@ -110,7 +151,7 @@ function renderIndex() {
     <p>Each current-time route returns a freshly generated timestamp and a matching <code>Cache-Control</code> header. Repeated requests should be served by the CDN until the selected duration expires.</p>
     <ul class="routes">${routeLinks}
     </ul>
-    <p><a class="button" href="/test">Run nested-request tests</a></p>
+    <p><a class="button" href="/test">Run automated tests</a> <a class="button secondary" href="/uat">Open UAT wizard</a></p>
   `);
 }
 
@@ -262,6 +303,219 @@ function renderTestPage() {
   `);
 }
 
+function renderUatPage() {
+  return renderLayout("CDN Cache UAT", `
+    <p class="eyebrow">Guided acceptance test</p>
+    <h1>CDN Cache UAT</h1>
+    <p>This wizard verifies CDN enablement, purging, and disabling through both the dashboard and Wasmer CLI.</p>
+    <ol class="progress" id="uat-progress">
+      <li class="active">Initial state</li>
+      <li>Dashboard enable</li>
+      <li>Dashboard purge</li>
+      <li>Dashboard disable</li>
+      <li>CLI enable</li>
+      <li>CLI purge</li>
+      <li>CLI disable</li>
+    </ol>
+    <section class="wizard" id="uat-step" aria-live="polite"></section>
+    <p><a class="back" href="/">Back to routes</a></p>
+    <script>
+      const stepElement = document.querySelector("#uat-step");
+      const progressItems = [...document.querySelectorAll("#uat-progress li")];
+      let stepIndex = 0;
+      let uiCache = null;
+      let cliCache = null;
+
+      function probeKey(prefix) {
+        return prefix + "-" + crypto.randomUUID();
+      }
+
+      async function probe(key) {
+        const response = await fetch("/uat-probe?key=" + encodeURIComponent(key), {
+          headers: { accept: "application/json" },
+          cache: "no-store"
+        });
+        const result = await response.json();
+        if (!response.ok || result.status !== 200 || !result.originRequestId) {
+          throw new Error(result.error || "Probe request failed with HTTP " + (result.status || response.status));
+        }
+        return result;
+      }
+
+      function setProgress(index) {
+        stepIndex = index;
+        progressItems.forEach((item, itemIndex) => {
+          item.className = itemIndex < index ? "done" : itemIndex === index ? "active" : "";
+        });
+      }
+
+      function showChecking(title, detail) {
+        stepElement.innerHTML = '<div class="wizard-status running"><span class="spinner" aria-hidden="true"></span><div><h2>' + title + '</h2><p>' + detail + '</p></div></div>';
+        stepElement.setAttribute("aria-busy", "true");
+      }
+
+      function showError(message, retry) {
+        stepElement.setAttribute("aria-busy", "false");
+        stepElement.innerHTML = '<div class="notice error"><h2>Check failed</h2><p></p></div><button class="button" type="button">Retry check</button>';
+        stepElement.querySelector(".notice p").textContent = message;
+        stepElement.querySelector("button").addEventListener("click", retry);
+      }
+
+      function showAction(title, instructions, buttonLabel, onConfirm, command = "") {
+        stepElement.setAttribute("aria-busy", "false");
+        stepElement.innerHTML = '<h2></h2><p class="instructions"></p>' + (command ? '<pre><code></code></pre>' : '') + '<button class="button" type="button"></button>';
+        stepElement.querySelector("h2").textContent = title;
+        stepElement.querySelector(".instructions").textContent = instructions;
+        if (command) stepElement.querySelector("code").textContent = command;
+        const button = stepElement.querySelector("button");
+        button.textContent = buttonLabel;
+        button.addEventListener("click", onConfirm);
+      }
+
+      async function expectUncached(key) {
+        const first = await probe(key);
+        const second = await probe(key);
+        if (first.originRequestId === second.originRequestId) {
+          throw new Error("The same origin response was returned twice. CDN caching appears to be enabled; disable it before starting the UAT.");
+        }
+        return second;
+      }
+
+      async function expectCached(key) {
+        const first = await probe(key);
+        const second = await probe(key);
+        if (first.originRequestId !== second.originRequestId) {
+          throw new Error("Two different origin responses were returned. CDN caching does not appear to be enabled yet.");
+        }
+        return second;
+      }
+
+      async function checkInitialState() {
+        setProgress(0);
+        showChecking("Checking initial state", "Confirming responses are not cached before the UAT begins…");
+        try {
+          await expectUncached(probeKey("initial"));
+          showAction(
+            "Enable CDN Cache in the dashboard",
+            "Open this app in the Wasmer dashboard, go to App Settings → CDN Cache, and enable CDN Cache.",
+            "I enabled CDN Cache",
+            checkUiEnabled
+          );
+        } catch (error) {
+          showError(error.message, checkInitialState);
+        }
+      }
+
+      async function checkUiEnabled() {
+        setProgress(1);
+        showChecking("Checking dashboard enablement", "Priming a long-lived response, then requesting it again…");
+        try {
+          const key = probeKey("ui-cache");
+          uiCache = { key, response: await expectCached(key) };
+          setProgress(2);
+          showAction(
+            "Purge the cache in the dashboard",
+            "A 24-hour response is now cached. In App Settings → CDN Cache, purge the cache, then continue.",
+            "I purged the cache",
+            checkUiPurged
+          );
+        } catch (error) {
+          showError(error.message, checkUiEnabled);
+        }
+      }
+
+      async function checkUiPurged() {
+        showChecking("Checking dashboard purge", "Requesting the previously primed cache key…");
+        try {
+          const response = await probe(uiCache.key);
+          if (response.originRequestId === uiCache.response.originRequestId) {
+            throw new Error("The previously cached origin response was returned. The dashboard purge has not taken effect.");
+          }
+          setProgress(3);
+          showAction(
+            "Disable CDN Cache in the dashboard",
+            "Return to App Settings → CDN Cache and disable CDN Cache.",
+            "I disabled CDN Cache",
+            checkUiDisabled
+          );
+        } catch (error) {
+          showError(error.message, checkUiPurged);
+        }
+      }
+
+      async function checkUiDisabled() {
+        showChecking("Checking dashboard disablement", "Confirming repeated requests now reach the origin…");
+        try {
+          await expectUncached(probeKey("ui-disabled"));
+          setProgress(4);
+          showAction(
+            "Enable CDN Cache with the CLI",
+            "Run this command from the app directory, then continue.",
+            "I ran the command",
+            checkCliEnabled,
+            "wasmer app cdn enable"
+          );
+        } catch (error) {
+          showError(error.message, checkUiDisabled);
+        }
+      }
+
+      async function checkCliEnabled() {
+        showChecking("Checking CLI enablement", "Priming a new 24-hour response, then requesting it again…");
+        try {
+          const key = probeKey("cli-cache");
+          cliCache = { key, response: await expectCached(key) };
+          setProgress(5);
+          showAction(
+            "Purge the cache with the CLI",
+            "The response has been primed. Run this command from the app directory, then continue.",
+            "I ran the command",
+            checkCliPurged,
+            "wasmer app cdn purge"
+          );
+        } catch (error) {
+          showError(error.message, checkCliEnabled);
+        }
+      }
+
+      async function checkCliPurged() {
+        showChecking("Checking CLI purge", "Requesting the previously primed cache key…");
+        try {
+          const response = await probe(cliCache.key);
+          if (response.originRequestId === cliCache.response.originRequestId) {
+            throw new Error("The previously cached origin response was returned. The CLI purge has not taken effect.");
+          }
+          setProgress(6);
+          showAction(
+            "Disable CDN Cache with the CLI",
+            "Run this final command from the app directory, then continue.",
+            "I ran the command",
+            checkCliDisabled,
+            "wasmer app cdn disable"
+          );
+        } catch (error) {
+          showError(error.message, checkCliPurged);
+        }
+      }
+
+      async function checkCliDisabled() {
+        showChecking("Checking CLI disablement", "Confirming repeated requests reach the origin again…");
+        try {
+          await expectUncached(probeKey("cli-disabled"));
+          setProgress(progressItems.length);
+          stepElement.setAttribute("aria-busy", "false");
+          stepElement.innerHTML = '<div class="notice success"><h2>UAT complete</h2><p>Dashboard and CLI enable, purge, and disable flows all behaved as expected.</p></div><button class="button" type="button">Run UAT again</button>';
+          stepElement.querySelector("button").addEventListener("click", checkInitialState);
+        } catch (error) {
+          showError(error.message, checkCliDisabled);
+        }
+      }
+
+      checkInitialState();
+    </script>
+  `);
+}
+
 function renderNotFound() {
   return renderLayout("Not found", `
     <h1>Route not found</h1>
@@ -307,8 +561,25 @@ function renderLayout(title, content) {
       .button { display: inline-block; margin-top: .5rem; padding: .7rem 1rem; border: 0; border-radius: .35rem; background: #2f78db; color: white; font: inherit; text-decoration: none; cursor: pointer; }
       .button:disabled { opacity: .55; cursor: wait; }
       .back { margin-left: 1rem; }
+      .secondary { margin-left: .5rem; background: #334155; }
+      .progress { display: grid; grid-template-columns: repeat(7, 1fr); gap: .4rem; padding: 0; margin: 2rem 0; list-style: none; counter-reset: uat-step; }
+      .progress li { color: #64748b; font-size: .7rem; text-align: center; }
+      .progress li::before { display: block; width: 1.6rem; height: 1.6rem; margin: 0 auto .5rem; border: 2px solid #334155; border-radius: 50%; content: counter(uat-step); counter-increment: uat-step; line-height: 1.6rem; }
+      .progress .active { color: #80bfff; }
+      .progress .active::before { border-color: #80bfff; }
+      .progress .done { color: #7de2b8; }
+      .progress .done::before { border-color: #7de2b8; content: "✓"; }
+      .wizard { min-height: 13rem; padding: 1.5rem; border: 1px solid #303949; border-radius: .5rem; background: #171c26; }
+      .wizard h2 { margin-top: 0; }
+      .wizard-status { display: flex; align-items: flex-start; gap: 1rem; }
+      .spinner { flex: 0 0 auto; width: 1.2rem; height: 1.2rem; margin-top: .2rem; border: 3px solid #47637d; border-top-color: #80bfff; border-radius: 50%; animation: spin .8s linear infinite; }
+      .notice { padding: .8rem 1rem; margin-bottom: 1rem; border-left: 3px solid; background: #111620; }
+      .notice.error { border-color: #ff8b8b; }
+      .notice.success { border-color: #7de2b8; }
+      pre { overflow-x: auto; padding: 1rem; border-radius: .35rem; background: #0c1017; }
       @keyframes spin { to { transform: rotate(360deg); } }
-      @media (prefers-reduced-motion: reduce) { .running strong::before { animation-duration: 1.8s; } }
+      @media (max-width: 700px) { .progress { grid-template-columns: 1fr; } .progress li { text-align: left; } .progress li::before { display: inline-block; margin: 0 .6rem 0 0; text-align: center; } }
+      @media (prefers-reduced-motion: reduce) { .running strong::before, .spinner { animation-duration: 1.8s; } }
     </style>
   </head>
   <body><main>${content}</main></body>
@@ -321,6 +592,16 @@ function sendHtml(response, html, statusCode, headOnly, extraHeaders = {}) {
     ...extraHeaders
   });
   response.end(headOnly ? undefined : html);
+}
+
+function sendJson(response, value, statusCode = 200) {
+  const body = JSON.stringify(value) + "\n";
+  response.writeHead(statusCode, {
+    "cache-control": "no-store",
+    "content-length": Buffer.byteLength(body),
+    "content-type": "application/json; charset=utf-8"
+  });
+  response.end(body);
 }
 
 function formatSeconds(seconds) {

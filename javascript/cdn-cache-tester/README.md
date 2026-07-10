@@ -9,8 +9,12 @@ Available routes:
 - `/current-time/1h`
 - `/current-time/1d`
 - `/test` runs browser-side cache behaviour tests and dynamically reports success or failure
+- `/uat` walks an operator through dashboard and CLI CDN enable, purge, and disable acceptance tests
+- `/uat-data` returns a 24-hour cacheable response used by the UAT wizard
 
 Each current-time response includes an ISO timestamp, Unix timestamp, unique origin request ID, and a `Cache-Control: public, max-age=<seconds>` header. The client-side test runner verifies that the CDN caches a response, that `Cache-Control: no-cache` on a client request bypasses a primed response, and that a cached `30s` response is replaced after waiting 31 seconds.
+
+The app is deployed with CDN caching disabled so the UAT wizard can verify the initial state before guiding the operator through dashboard and CLI controls.
 
 ## Run locally
 
