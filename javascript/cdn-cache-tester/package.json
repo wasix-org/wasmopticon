@@ -1,0 +1,14 @@
+{
+  "name": "cdn-cache-tester",
+  "version": "1.0.0",
+  "description": "A Wasmer Edge app for exercising and testing CDN cache behaviour.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "node --check src/server.js",
+    "start": "node src/server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

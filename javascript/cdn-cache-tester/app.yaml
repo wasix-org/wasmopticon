@@ -1,0 +1,26 @@
+name: cdn-cache-tester
+app_id: da_KE4I8tXUpm3g
+owner: wasmer-tests
+package: .
+env:
+  PORT: '8080'
+capabilities:
+  cdn_cache:
+    enabled: true
+kind: wasmer.io/App.v0
+annotations:
+  shipitcli.com/config:
+    build_command: npm run build
+    commands:
+      start: node src/server.js
+    extra_dependencies: []
+    install_requires_all_files: false
+    node_version: '24'
+    optimize_node_dependencies: true
+    package_manager: npm
+    port: 8080
+    precompile_edgejs: true
+    remove_native_binaries: true
+    use_edgejs: true
+  shipitcli.com/provider: node
+  shipitcli.com/version: 0.21.6
