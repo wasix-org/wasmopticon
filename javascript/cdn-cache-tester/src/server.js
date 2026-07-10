@@ -119,6 +119,7 @@ function renderTestPage() {
     { id: `${spec}-header`, name: `${spec}: cache-control header` },
     { id: `${spec}-cached`, name: `${spec}: repeated request is cached` }
   ]);
+  tests.push({ id: "30s-expired", name: "30s: response expires after TTL" });
   const items = tests.map((test) => `
     <li class="result pending" id="${test.id}">
       <strong>PENDING — ${escapeHtml(test.name)}</strong>
@@ -134,7 +135,7 @@ function renderTestPage() {
     <p><button class="button" id="run-tests" type="button">Run again</button> <a class="back" href="/">Back to routes</a></p>
     <script>
       const durations = ${JSON.stringify(CACHE_DURATIONS)};
-      const total = Object.keys(durations).length * 2;
+      const total = Object.keys(durations).length * 2 + 1;
       const runButton = document.querySelector("#run-tests");
       const summary = document.querySelector("#summary");
 
@@ -212,6 +213,33 @@ function renderTestPage() {
           complete += 1;
           summary.textContent = passed + "/" + total + " tests passed · " + complete + " complete";
         }
+
+        const expiryId = "30s-expired";
+        setResult(expiryId, "pending", "Waiting to run…");
+        passed += Number(await runTest(expiryId, async () => {
+          const url = "/current-time/30s?expiry-test=" + crypto.randomUUID();
+          const first = await snapshot(url);
+          if (first.status !== 200) {
+            throw new Error("initial request returned HTTP " + first.status);
+          }
+
+          const waitSeconds = durations["30s"] + 1;
+          for (let remaining = waitSeconds; remaining > 0; remaining -= 1) {
+            setResult(expiryId, "running", "Waiting " + remaining + "s for the 30s TTL to expire…");
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+          }
+
+          const second = await snapshot(url);
+          if (second.status !== 200) {
+            throw new Error("post-expiry request returned HTTP " + second.status);
+          }
+          if (first.body === second.body) {
+            throw new Error("same origin response was still served after " + waitSeconds + "s (" + (first.data?.originRequestId || "unknown id") + ")");
+          }
+          return "origin response changed after " + waitSeconds + "s (" + (first.data?.originRequestId || "unknown") + " → " + (second.data?.originRequestId || "unknown") + ")";
+        }));
+        complete += 1;
+        summary.textContent = passed + "/" + total + " tests passed · " + complete + " complete";
 
         runButton.disabled = false;
       }
