@@ -31,7 +31,11 @@ const server = http.createServer(async (request, response) => {
     }
 
     if ((request.method === "GET" || request.method === "HEAD") && url.pathname === "/uat-data") {
-      return sendCurrentTime(response, { spec: "uat", seconds: 24 * 60 * 60 }, request.method === "HEAD");
+      return sendCurrentTime(response, {
+        spec: "uat",
+        seconds: 24 * 60 * 60,
+        cacheControl: "public, max-age=1, s-maxage=86400"
+      }, request.method === "HEAD");
     }
 
     const duration = matchCurrentTimeRoute(url.pathname);
@@ -71,7 +75,7 @@ function matchCurrentTimeRoute(pathname) {
 
 function sendCurrentTime(response, duration, headOnly) {
   const generatedAt = new Date().toISOString();
-  const cacheControl = `public, max-age=${duration.seconds}`;
+  const cacheControl = duration.cacheControl || `public, max-age=${duration.seconds}`;
   const body = JSON.stringify({
     generatedAt,
     timestamp: Date.parse(generatedAt),
@@ -307,10 +311,8 @@ function renderUatPage() {
 
       async function probe(key) {
         const response = await fetch("/uat-data?key=" + encodeURIComponent(key), {
-          headers: {
-            accept: "application/json",
-            "if-none-match": '"uat-client-' + crypto.randomUUID() + '"'
-          },
+          credentials: "omit",
+          headers: { accept: "application/json" },
           redirect: "manual"
         });
         const result = await response.json();
