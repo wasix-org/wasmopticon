@@ -115,11 +115,11 @@ function renderIndex() {
 }
 
 function renderTestPage() {
-  const tests = Object.keys(CACHE_DURATIONS).flatMap((spec) => [
-    { id: `${spec}-header`, name: `${spec}: cache-control header` },
-    { id: `${spec}-cached`, name: `${spec}: repeated request is cached` }
-  ]);
-  tests.push({ id: "30s-expired", name: "30s: response expires after TTL" });
+  const tests = [
+    { id: "becomes-cached", name: "Response becomes cached" },
+    { id: "client-no-cache", name: "Client Cache-Control bypasses cache" },
+    { id: "cache-expires", name: "Cached response expires after 30s" }
+  ];
   const items = tests.map((test) => `
     <li class="result pending" id="${test.id}">
       <strong>PENDING — ${escapeHtml(test.name)}</strong>
@@ -129,13 +129,13 @@ function renderTestPage() {
   return renderLayout("Cache test results", `
     <p class="eyebrow">Client-side test run</p>
     <h1 id="summary">0/${tests.length} tests passed · 0 complete</h1>
-    <p>Browser JavaScript runs each test against the current-time routes and updates these results as requests complete.</p>
+    <p>Browser JavaScript tests the three CDN cache behaviours and updates these results as requests complete.</p>
     <ul class="results">${items}
     </ul>
     <p><button class="button" id="run-tests" type="button">Run again</button> <a class="back" href="/">Back to routes</a></p>
     <script>
-      const durations = ${JSON.stringify(CACHE_DURATIONS)};
-      const total = Object.keys(durations).length * 2 + 1;
+      const total = ${tests.length};
+      const cacheSeconds = ${CACHE_DURATIONS["30s"]};
       const runButton = document.querySelector("#run-tests");
       const summary = document.querySelector("#summary");
 
@@ -143,13 +143,14 @@ function renderTestPage() {
         const item = document.getElementById(id);
         const name = item.querySelector("strong").textContent.replace(/^[A-Z]+ — /, "");
         item.className = "result " + state;
+        item.setAttribute("aria-busy", state === "running" ? "true" : "false");
         item.querySelector("strong").textContent = state.toUpperCase() + " — " + name;
         item.querySelector("span").textContent = detail;
       }
 
-      async function snapshot(url) {
+      async function snapshot(url, requestHeaders = {}) {
         const response = await fetch(url, {
-          headers: { accept: "application/json" },
+          headers: { accept: "application/json", ...requestHeaders },
           redirect: "manual"
         });
         const body = await response.text();
@@ -175,71 +176,82 @@ function renderTestPage() {
         }
       }
 
+      function updateSummary(passed, complete) {
+        summary.textContent = passed + "/" + total + " tests passed · " + complete + " complete";
+      }
+
+      function assertOk(...responses) {
+        const failed = responses.find((response) => response.status !== 200);
+        if (failed) {
+          throw new Error("received HTTP " + failed.status);
+        }
+      }
+
       async function runTests() {
         runButton.disabled = true;
         let passed = 0;
         let complete = 0;
-        summary.textContent = "0/" + total + " tests passed · 0 complete";
+        document.querySelectorAll(".result").forEach((item) => {
+          setResult(item.id, "pending", "Waiting to run…");
+        });
+        updateSummary(passed, complete);
 
-        for (const [spec, seconds] of Object.entries(durations)) {
-          const headerId = spec + "-header";
-          const cacheId = spec + "-cached";
-          setResult(headerId, "pending", "Waiting to run…");
-          setResult(cacheId, "pending", "Waiting to run…");
-
-          passed += Number(await runTest(headerId, async () => {
-            const response = await snapshot("/current-time/" + spec + "?header-test=" + crypto.randomUUID());
-            const expected = "public, max-age=" + seconds;
-            if (response.status !== 200 || response.cacheControl !== expected) {
-              throw new Error("expected " + expected + "; received " + response.status + " " + (response.cacheControl || "(missing)"));
-            }
-            return "received " + expected;
-          }));
-          complete += 1;
-          summary.textContent = passed + "/" + total + " tests passed · " + complete + " complete";
-
-          passed += Number(await runTest(cacheId, async () => {
-            const url = "/current-time/" + spec + "?cache-test=" + crypto.randomUUID();
-            const first = await snapshot(url);
-            const second = await snapshot(url);
-            if (first.status !== 200 || second.status !== 200) {
-              throw new Error("received HTTP " + first.status + " then " + second.status);
-            }
-            if (first.body !== second.body) {
-              throw new Error("origin responses differed (" + (first.data?.originRequestId || "unknown") + " → " + (second.data?.originRequestId || "unknown") + ")");
-            }
-            return "same origin response (" + (first.data?.originRequestId || "unknown id") + ")";
-          }));
-          complete += 1;
-          summary.textContent = passed + "/" + total + " tests passed · " + complete + " complete";
-        }
-
-        const expiryId = "30s-expired";
-        setResult(expiryId, "pending", "Waiting to run…");
-        passed += Number(await runTest(expiryId, async () => {
-          const url = "/current-time/30s?expiry-test=" + crypto.randomUUID();
+        passed += Number(await runTest("becomes-cached", async () => {
+          const url = "/current-time/30s?cache-test=" + crypto.randomUUID();
           const first = await snapshot(url);
-          if (first.status !== 200) {
-            throw new Error("initial request returned HTTP " + first.status);
+          const second = await snapshot(url);
+          assertOk(first, second);
+          if (first.body !== second.body) {
+            throw new Error("origin responses differed (" + (first.data?.originRequestId || "unknown") + " → " + (second.data?.originRequestId || "unknown") + ")");
+          }
+          return "same origin response (" + (first.data?.originRequestId || "unknown id") + ")";
+        }));
+        complete += 1;
+        updateSummary(passed, complete);
+
+        passed += Number(await runTest("client-no-cache", async () => {
+          const url = "/current-time/30s?no-cache-test=" + crypto.randomUUID();
+          const primed = await snapshot(url);
+          const cached = await snapshot(url);
+          assertOk(primed, cached);
+          if (primed.body !== cached.body) {
+            throw new Error("could not prime the cached response");
           }
 
-          const waitSeconds = durations["30s"] + 1;
+          const bypassed = await snapshot(url, { "cache-control": "no-cache" });
+          assertOk(bypassed);
+          if (bypassed.body === primed.body) {
+            throw new Error("cached origin response was served despite Cache-Control: no-cache");
+          }
+          return "no-cache reached origin (" + (primed.data?.originRequestId || "unknown") + " → " + (bypassed.data?.originRequestId || "unknown") + ")";
+        }));
+        complete += 1;
+        updateSummary(passed, complete);
+
+        passed += Number(await runTest("cache-expires", async () => {
+          const url = "/current-time/30s?expiry-test=" + crypto.randomUUID();
+          const first = await snapshot(url);
+          const cached = await snapshot(url);
+          assertOk(first, cached);
+          if (first.body !== cached.body) {
+            throw new Error("could not prime the cached response");
+          }
+
+          const waitSeconds = cacheSeconds + 1;
           for (let remaining = waitSeconds; remaining > 0; remaining -= 1) {
-            setResult(expiryId, "running", "Waiting " + remaining + "s for the 30s TTL to expire…");
+            setResult("cache-expires", "running", "Waiting " + remaining + "s for the 30s TTL to expire…");
             await new Promise((resolve) => setTimeout(resolve, 1000));
           }
 
           const second = await snapshot(url);
-          if (second.status !== 200) {
-            throw new Error("post-expiry request returned HTTP " + second.status);
-          }
+          assertOk(second);
           if (first.body === second.body) {
             throw new Error("same origin response was still served after " + waitSeconds + "s (" + (first.data?.originRequestId || "unknown id") + ")");
           }
           return "origin response changed after " + waitSeconds + "s (" + (first.data?.originRequestId || "unknown") + " → " + (second.data?.originRequestId || "unknown") + ")";
         }));
         complete += 1;
-        summary.textContent = passed + "/" + total + " tests passed · " + complete + " complete";
+        updateSummary(passed, complete);
 
         runButton.disabled = false;
       }
@@ -290,10 +302,13 @@ function renderLayout(title, content) {
       .pass strong { color: #7de2b8; }
       .fail strong { color: #ff8b8b; }
       .running strong { color: #80bfff; }
+      .running strong::before { display: inline-block; width: .75em; height: .75em; margin-right: .6em; border: 2px solid #47637d; border-top-color: #80bfff; border-radius: 50%; content: ""; animation: spin .8s linear infinite; }
       .pending strong { color: #8997aa; }
       .button { display: inline-block; margin-top: .5rem; padding: .7rem 1rem; border: 0; border-radius: .35rem; background: #2f78db; color: white; font: inherit; text-decoration: none; cursor: pointer; }
       .button:disabled { opacity: .55; cursor: wait; }
       .back { margin-left: 1rem; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      @media (prefers-reduced-motion: reduce) { .running strong::before { animation-duration: 1.8s; } }
     </style>
   </head>
   <body><main>${content}</main></body>
