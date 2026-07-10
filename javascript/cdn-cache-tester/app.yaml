@@ -6,7 +6,7 @@ env:
   PORT: '8080'
 capabilities:
   cdn_cache:
-    enabled: true
+    enabled: false
 kind: wasmer.io/App.v0
 annotations:
   shipitcli.com/config:
