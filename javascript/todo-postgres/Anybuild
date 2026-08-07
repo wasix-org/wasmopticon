@@ -1,0 +1,25 @@
+# Astro server plus the migration command used by the deployment job.
+load("//anybuild/tools:node.bzl", "node_build", "node_config", "node_serve")
+
+config = node_config(
+    schema = 1,
+    commands = {
+        "start": "node ./dist/server/entry.mjs",
+    },
+    node_package_manager = "npm",
+    node_framework = "astro",
+    node_server = "node",
+    node_build_command = "npm run build",
+    node_version = "24",
+)
+
+build = node_build(config)
+
+node_serve(
+    config,
+    build,
+    name = "todo-js-postgres",
+    extra_commands = {
+        "migrate": "node ./dist/migrate.mjs",
+    },
+)

@@ -1,0 +1,16 @@
+kind: wasmer.io/App.v0
+name: todo-js-postgres
+owner: wasmer-tests
+package: .
+locality:
+  regions:
+  - fr-roub1
+capabilities:
+  database:
+    engine: postgres
+jobs:
+- name: migrate-database
+  trigger: post-deployment
+  action:
+    execute:
+      command: migrate
