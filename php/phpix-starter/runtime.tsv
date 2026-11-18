@@ -1,0 +1,6 @@
+# Registry package and version encoded as the local WebC path, then SHA-256.
+phpix/phpix-84-32bit/0.3.1.webc d2d30af332fe34d8190a086174a3961906b5f752e1e740f9092f35ffa0ac9050
+sendmail/sendmail/0.1.10.webc 95e52a98e0e684c681c128a07a8031ed284cb5bea71b73a74a44d037a5288d13
+wasmer/bash/1.0.25.webc 059606d132e2e6bc1afe3b432ee64dcb1b1b059815c8bb213cf3b24798ef21e1
+wasmer/coreutils/1.0.27.webc 35028c4e6b9fa8cccdffdcab2007d1df3af31b3f2b22fb890d022d7ae723bbd3
+wasmer/icu-data/78.3.0.webc 6e27d8c3828d52fb7ad66afb8438d4c18dde7f5b8dffae7069bc1fd989076c20

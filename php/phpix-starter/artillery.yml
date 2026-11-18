@@ -1,0 +1,30 @@
+config:
+  target: http://127.0.0.1:18140
+  phases:
+    - duration: 30
+      arrivalRate: 1
+  http:
+    timeout: 5
+  plugins:
+    expect:
+      reportFailuresAsErrors: true
+
+scenarios:
+  - name: Dynamic starter page
+    weight: 3
+    flow:
+      - get:
+          url: /
+          expect:
+            - statusCode: 200
+            - matchesRegexp: 'PHP code tester Sandbox Online'
+            - matchesRegexp: 'PHP Version.*8\.4\.'
+  - name: PHP request and temporary file round trip
+    weight: 2
+    flow:
+      - post:
+          url: /roundtrip.php
+          body: 'WASIX PHPix suite'
+          expect:
+            - statusCode: 200
+            - matchesRegexp: '^roundtrip:WASIX PHPix suite$'
