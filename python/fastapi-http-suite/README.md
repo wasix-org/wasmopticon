@@ -12,6 +12,8 @@ ANYBUILD_BIN=/path/to/anybuild WASMER_BIN=/path/to/wasmer ./build.sh
 WASMER_BIN=/path/to/wasmer PORT=38381 ./test.sh
 ```
 
+Use uvx 0.13.9 on PATH for the local Anybuild builder.
+
 The first build fetches verified dependencies. Subsequent launches resolve
 WebCs from the offline registry staged by the build. The test chooses a free
 loopback port when `PORT` is unset and tests greeting JSON, the OpenAPI

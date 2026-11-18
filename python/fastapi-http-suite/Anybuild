@@ -7,7 +7,7 @@ config = python_config(
     python_framework = "fastapi",
     python_main_file = "src/main.py",
     python_version = "3.13",
-    uv_version = "0.8.15",
+    uv_version = "0.13.9",
     python_precompile = False,
 )
 

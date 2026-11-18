@@ -22,8 +22,7 @@ scenarios:
           url: /
           expect:
             - statusCode: 200
-            - jmespath: message
-              equals: Hello World
+            - jmespath: "message == 'Hello World'"
   - name: OpenAPI
     weight: 1
     flow:
@@ -32,5 +31,4 @@ scenarios:
           url: /openapi.json
           expect:
             - statusCode: 200
-            - jmespath: info.title
-              equals: FastAPI
+            - jmespath: "info.title == 'FastAPI'"

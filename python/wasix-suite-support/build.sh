@@ -8,6 +8,11 @@ if [[ $("$anybuild" --version) != 0.33.3 ]]; then
     exit 1
 fi
 
+if [[ "$(uvx --version)" != "uvx 0.13.9 "* ]]; then
+    echo "This fixture requires uvx 0.13.9 on PATH." >&2
+    exit 1
+fi
+
 support=$(realpath "$(dirname -- "${BASH_SOURCE[0]}")")
 "$support/fetch-registry.sh"
 
