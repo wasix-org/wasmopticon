@@ -1,2 +1,11 @@
 __pycache__
 .tmp*
+
+# Local fixture inputs, Anybuild artifacts, and test output
+.suite/
+.anybuild/
+
+# Dependencies installed from project lockfiles
+node_modules/
+.venv/
+.uv-cache/
