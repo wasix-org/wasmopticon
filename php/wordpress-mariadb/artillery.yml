@@ -37,7 +37,7 @@ scenarios:
           followRedirect: false
           expect:
             - statusCode: 200
-            - matchesRegexp: 'WASIX Fixture Post'
+            - jmespath: "[0].title.rendered == 'WASIX Fixture Post'"
   - name: WordPress upload
     weight: 1
     flow:

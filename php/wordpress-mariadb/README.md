@@ -30,6 +30,8 @@ Everything is served on host loopback. The harness removes the container
 and preserves logs and test responses under `.anybuild/suite/runs/`.
 
 For an opt-in load run, pass a command to `test.sh`. The harness runs it
-after the restart checks with the active loopback `TARGET_URL`, then checks
-the site again. Use Artillery 2.0.34 with `artillery.yml` and pass
+after the restart checks with the active loopback `TARGET_URL` and the
+Docker container name in `MARIADB_CONTAINER`, then checks the site again.
+Set `WORDPRESS_WEBC` to test a retained package or `MARIADB_CPUSET` to
+pin the DB container's CPUs. Use Artillery 2.0.34 with `artillery.yml` and pass
 `--target "$TARGET_URL"` from the load command.

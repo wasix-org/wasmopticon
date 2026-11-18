@@ -3,6 +3,10 @@ set -euo pipefail
 
 wasmer_bin=$(command -v "${WASMER_BIN:-wasmer}")
 wasmer_bin=$(realpath -- "$wasmer_bin")
+package=${WORDPRESS_WEBC:-}
+if [[ -n $package ]]; then
+    package=$(realpath -e -- "$package")
+fi
 cd -- "$(dirname -- "${BASH_SOURCE[0]}")"
 source ./inputs.env
 
@@ -16,7 +20,7 @@ case "$lane" in
 esac
 
 suite=$PWD/.anybuild/suite
-package=$suite/package.webc
+package=${package:-$suite/package.webc}
 registry=$suite/registry
 [[ -f $package && -d $registry ]] || { echo 'Run build.sh before testing' >&2; exit 1; }
 mkdir -p "$suite/runs"
@@ -54,8 +58,12 @@ trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
+db_resources=()
+if [[ -n ${MARIADB_CPUSET:-} ]]; then
+    db_resources=(--cpuset-cpus "$MARIADB_CPUSET")
+fi
 timeout --kill-after=5s 120s docker run --detach --pull=missing --name "$container" \
-    --publish 127.0.0.1::3306 --tmpfs /var/lib/mysql:rw,size=1g \
+    "${db_resources[@]}" --publish 127.0.0.1::3306 --tmpfs /var/lib/mysql:rw,size=1g \
     -e MARIADB_ROOT_PASSWORD=fixture-root -e MARIADB_USER=wordpress \
     -e MARIADB_PASSWORD=fixture-db -e MARIADB_DATABASE=wordpress \
     "$MARIADB_IMAGE" >"$run_dir/container.log" 2>&1
@@ -140,7 +148,7 @@ stop_server
 start_server restart
 assert_site restart
 if (( $# )); then
-    TARGET_URL=$url "$@"
+    TARGET_URL=$url MARIADB_CONTAINER=$container "$@"
     assert_site after-load
 fi
 printf 'WordPress %s passed. Evidence in %s\n' "$lane" "$run_dir"
