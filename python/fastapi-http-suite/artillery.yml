@@ -1,0 +1,36 @@
+config:
+  target: http://127.0.0.1:38381
+  phases:
+    - duration: 30
+      arrivalRate: 1
+      maxVusers: 100
+  http:
+    timeout: 3
+    pool: 16
+    extendedMetrics: true
+  plugins:
+    expect:
+      reportFailuresAsErrors: true
+      formatter: prettyError
+
+scenarios:
+  - name: Greeting
+    weight: 9
+    flow:
+      - get:
+          followRedirect: false
+          url: /
+          expect:
+            - statusCode: 200
+            - jmespath: message
+              equals: Hello World
+  - name: OpenAPI
+    weight: 1
+    flow:
+      - get:
+          followRedirect: false
+          url: /openapi.json
+          expect:
+            - statusCode: 200
+            - jmespath: info.title
+              equals: FastAPI
