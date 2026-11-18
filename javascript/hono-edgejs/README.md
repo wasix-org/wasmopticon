@@ -2,7 +2,7 @@
 
 Based on the [Hono starter](https://github.com/wasmerio/examples/tree/1da21d1232ce101832921e4d5c8d0a81adc6b98b/js-hono).
 The fixture keeps the upstream greeting and npm lock, adds a JSON echo, and
-defaults to loopback. Node 24.13.2 and npm 11.8.0 are the build toolchain.
+defaults to loopback. Node 26.13.1 and npm 11.20.0 are the build toolchain.
 Anybuild maps the guest Node command to Edge.js QuickJS 0.2.5.
 
 ```sh

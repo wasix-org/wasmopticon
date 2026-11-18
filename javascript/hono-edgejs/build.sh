@@ -8,6 +8,10 @@ if [[ $("$ANYBUILD_BIN" --version) != 0.33.3 ]]; then
   echo 'This fixture requires Anybuild 0.33.3.' >&2
   exit 1
 fi
+if [[ $(node --version) != v26.13.1 || $(npm --version) != 11.20.0 ]]; then
+  echo 'Put Node 26.13.1 and npm 11.20.0 on PATH before building.' >&2
+  exit 1
+fi
 "$ANYBUILD_BIN" build . --wasmer --wasmer-bin "$WASMER_BIN" \
   --install-command 'npm ci --no-audit'
 

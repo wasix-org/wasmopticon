@@ -6,8 +6,9 @@ config = node_config(
     schema = 1,
     commands = {"start": "node server.js"},
     node_package_manager = "npm",
-    node_version = "24.13.2",
-    npm_version = "11.8.0",
+    node_install_requires_all_files = True,
+    node_version = "26.13.1",
+    npm_version = "11.20.0",
     edgejs_engine = "quickjs",
     edgejs_precompile = False,
 )
