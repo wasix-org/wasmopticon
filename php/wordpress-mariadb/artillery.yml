@@ -1,0 +1,49 @@
+config:
+  target: http://127.0.0.1:18150
+  phases:
+    - duration: 30
+      arrivalRate: 1
+  http:
+    timeout: 5
+  plugins:
+    expect:
+      reportFailuresAsErrors: true
+      formatter: prettyError
+
+scenarios:
+  - name: WordPress home
+    weight: 4
+    flow:
+      - get:
+          url: /
+          followRedirect: false
+          expect:
+            - statusCode: 200
+            - matchesRegexp: '<h1>WASIX WordPress Fixture</h1>'
+  - name: WordPress post permalink
+    weight: 3
+    flow:
+      - get:
+          url: /wasix-fixture/
+          followRedirect: false
+          expect:
+            - statusCode: 200
+            - matchesRegexp: 'Persistence fixture body'
+  - name: WordPress REST post lookup
+    weight: 2
+    flow:
+      - get:
+          url: '/index.php?rest_route=%2Fwp%2Fv2%2Fposts&slug=wasix-fixture'
+          followRedirect: false
+          expect:
+            - statusCode: 200
+            - matchesRegexp: 'WASIX Fixture Post'
+  - name: WordPress upload
+    weight: 1
+    flow:
+      - get:
+          url: /wp-content/uploads/sample.txt
+          followRedirect: false
+          expect:
+            - statusCode: 200
+            - matchesRegexp: 'WASIX WordPress fixture upload'
