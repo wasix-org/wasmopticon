@@ -17,6 +17,11 @@ manifest=.anybuild/wasmer/wasmer.toml
 grep -Fx '"phpix/phpix-84-32bit" = "=0.3.1"' "$manifest"
 build_tmp=$(mktemp -d .anybuild/suite/package.XXXXXX)
 trap 'rm -rf -- "$build_tmp"' EXIT
-"$wasmer_bin" package build "$manifest" --out "$build_tmp/package.webc"
+# WebC records local volume paths and staged modification times.
+package_root=.anybuild/local/build
+package_manifest=$package_root/wasmer.toml
+sed -E 's|^(".*" = ").*/\.anybuild/local/build/|\1|' "$manifest" > "$package_manifest"
+find "$package_root" -exec touch -h -d "@946684800" -- {} +
+"$wasmer_bin" package build "$package_manifest" --out "$build_tmp/package.webc"
 mv -f -- "$build_tmp/package.webc" .anybuild/suite/package.webc
 sha256sum .anybuild/suite/package.webc

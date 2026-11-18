@@ -8,6 +8,7 @@ config:
   plugins:
     expect:
       reportFailuresAsErrors: true
+      formatter: prettyError
 
 scenarios:
   - name: Dynamic starter page
@@ -15,6 +16,7 @@ scenarios:
     flow:
       - get:
           url: /
+          followRedirect: false
           expect:
             - statusCode: 200
             - matchesRegexp: 'PHP code tester Sandbox Online'
@@ -24,6 +26,7 @@ scenarios:
     flow:
       - post:
           url: /roundtrip.php
+          followRedirect: false
           body: 'WASIX PHPix suite'
           expect:
             - statusCode: 200
