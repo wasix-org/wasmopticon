@@ -1,0 +1,12 @@
+[general]
+page404 = "404.html"
+threads-multiplier = 1
+
+[[advanced.redirects]]
+source = "/old-guide"
+destination = "/guide/"
+kind = 301
+
+[[advanced.rewrites]]
+source = "/learn"
+destination = "/guide/index.html"
