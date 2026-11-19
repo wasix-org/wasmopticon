@@ -1,0 +1,67 @@
+config:
+  target: http://127.0.0.1:18081
+  phases:
+    - duration: 30
+      arrivalRate: 1
+      maxVusers: 100
+  http:
+    timeout: 3
+    pool: 16
+    extendedMetrics: true
+    defaults:
+      headers:
+        Accept-Encoding: identity
+  plugins:
+    expect:
+      reportFailuresAsErrors: true
+      formatter: prettyError
+
+scenarios:
+  - name: Home and stylesheet
+    weight: 5
+    flow:
+      - get:
+          followRedirect: false
+          url: /
+          expect:
+            - statusCode: 200
+            - matchesRegexp: '<h1>Field Guide</h1>'
+      - get:
+          followRedirect: false
+          url: /assets/site.css
+          expect:
+            - statusCode: 200
+            - matchesRegexp: 'background: #f8f6ec'
+  - name: Guide and script
+    weight: 3
+    flow:
+      - get:
+          followRedirect: false
+          url: /guide/
+          expect:
+            - statusCode: 200
+            - matchesRegexp: '<h1>Trail Notes</h1>'
+      - get:
+          followRedirect: false
+          url: /assets/site.js
+          expect:
+            - statusCode: 200
+            - matchesRegexp: 'dataset.fieldGuideReady'
+  - name: Rewrite and byte range
+    weight: 2
+    flow:
+      - get:
+          followRedirect: false
+          url: /learn
+          expect:
+            - statusCode: 200
+            - matchesRegexp: '<h1>Trail Notes</h1>'
+      - get:
+          followRedirect: false
+          url: /assets/site.css
+          headers:
+            Range: bytes=0-15
+          expect:
+            - statusCode: 206
+            - headerEquals: [content-range, 'bytes 0-15/148']
+            - matchesRegexp: '^body \{\n  color:\x20$'
