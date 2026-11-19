@@ -1,0 +1,33 @@
+config:
+  target: http://127.0.0.1:18882
+  phases:
+    - duration: 30
+      arrivalRate: 1
+      maxVusers: 100
+  http:
+    timeout: 3
+    pool: 16
+  plugins:
+    expect:
+      reportFailuresAsErrors: true
+      formatter: prettyError
+
+scenarios:
+  - name: Server-rendered page and script
+    flow:
+      - get:
+          url: /?probe=artillery-next
+          followRedirect: false
+          capture:
+            regexp: 'src="(/_next/static/[^"]+\.js)"'
+            group: 1
+            as: nextScript
+          expect:
+            - statusCode: 200
+            - matchesRegexp: '<output id="qa-token">artillery-next</output>'
+      - get:
+          url: '{{ nextScript }}'
+          followRedirect: false
+          expect:
+            - statusCode: 200
+            - matchesRegexp: '\S'

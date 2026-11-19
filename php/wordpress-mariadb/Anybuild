@@ -1,0 +1,23 @@
+load("//anybuild/tools:wordpress.bzl", "wordpress_build", "wordpress_config", "wordpress_serve")
+
+# build.sh supplies a verified full WordPress tree.
+config = wordpress_config(
+    schema = 1,
+    php_version = "8.4",
+    php_architecture = "32-bit",
+    phpix = True,
+    phpix_worker_threads = 1,
+    wp_cli_version = "2.12.0",
+)
+
+build = wordpress_build(config)
+
+wordpress_serve(
+    config,
+    build,
+    name = "wordpress-mariadb",
+    extra_commands = {
+        "local": "phpix --startup-script=/opt/assets/start-wp.php -t /app",
+        "local-php": "php",
+    },
+)

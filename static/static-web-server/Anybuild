@@ -1,0 +1,28 @@
+load("//anybuild:serve.bzl", "build", "serve")
+load("//anybuild/tools:staticfile.bzl", "staticfile_build", "staticfile_config")
+
+config = staticfile_config(schema = 1, static_dir = "site", sws_version = "2.44.0")
+site = staticfile_build(config)
+server = mount("static_runtime")
+
+# Use the registry atom verified by build.sh. Anybuild 0.33.3 has no 2.44.0 mapping.
+artifact = build(
+    steps = site.steps + [
+        workdir(server.path),
+        copy(".suite/webserver.wasm", "webserver.wasm"),
+        copy("sws.toml", "sws.toml"),
+    ],
+    mounts = site.mounts + [server],
+)
+
+serve(
+    config,
+    artifact,
+    name = "static-web-server-suite",
+    commands = {
+        "start": "{server}/webserver.wasm --root={site} --config-file={server}/sws.toml".format(
+            server = server.serve_path,
+            site = site.static_app.serve_path,
+        ),
+    },
+)

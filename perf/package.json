@@ -1,0 +1,10 @@
+{
+  "name": "wasmopticon-perf",
+  "private": true,
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "devDependencies": {
+    "artillery": "2.0.34"
+  }
+}

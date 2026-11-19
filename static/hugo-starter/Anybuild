@@ -1,0 +1,28 @@
+load("//anybuild:serve.bzl", "build", "serve")
+load("//anybuild/tools:staticfile.bzl", "staticfile_build", "staticfile_config")
+
+# build.sh passes the workspace-relative directory containing Hugo's output.
+config = staticfile_config(schema = 1, static_dir = ".suite/site", sws_version = "2.44.0")
+site = staticfile_build(config)
+server = mount("static_runtime")
+
+# The built-in Registry mapping does not include 2.44.0.
+artifact = build(
+    steps = site.steps + [
+        workdir(server.path),
+        copy(".suite/webserver.wasm", "webserver.wasm"),
+    ],
+    mounts = site.mounts + [server],
+)
+
+serve(
+    config,
+    artifact,
+    name = "hugo-starter-suite",
+    commands = {
+        "start": "{server}/webserver.wasm --root={site} --page404=404.html --threads-multiplier=1".format(
+            server = server.serve_path,
+            site = site.static_app.serve_path,
+        ),
+    },
+)
