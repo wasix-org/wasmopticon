@@ -26,6 +26,9 @@ registry=$suite/registry
 mkdir -p "$suite/runs"
 run_dir=$(mktemp -d "$suite/runs/$lane.XXXXXX")
 container=wasmopticon-wordpress-${run_dir##*/}-$UID
+if [[ -n ${WORDPRESS_CONTAINER_RECEIPT:-} ]]; then
+    printf '%s\n' "$container" > "$WORDPRESS_CONTAINER_RECEIPT"
+fi
 content=$run_dir/wp-content
 mkdir -p "$content/uploads"
 cp -- sample.txt "$content/uploads/sample.txt"
