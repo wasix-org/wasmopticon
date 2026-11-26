@@ -1,0 +1,26 @@
+load("//anybuild/tools:node.bzl", "node_build", "node_config", "node_serve")
+
+load("//anybuild:serve.bzl", "build")
+
+config = node_config(
+    schema = 1,
+    node_build_command = "npm run build",
+    optimize_node_dependencies = False,
+    commands = {"start": "node server.js"},
+    node_package_manager = "npm",
+    node_install_requires_all_files = True,
+    node_version = "26.13.1",
+    npm_version = "11.20.0",
+    edgejs_engine = "quickjs",
+    edgejs_precompile = False,
+)
+
+app_build = node_build(config)
+# Anybuild's Wasmer dependency map takes Node's major version as its switch.
+guest_build = build(
+    steps = app_build.steps,
+    serve_deps = [dep("node", "24")],
+    mounts = app_build.mounts,
+    app = app_build.app,
+)
+node_serve(config, guest_build, name = "tanstack-start-edgejs")

@@ -68,3 +68,29 @@ echo 'PASS JSON echo status, content type and body'
 result=$(curl --noproxy '*' -fsS --max-time 5 "$origin/")
 [[ "$result" == "$greeting" ]]
 echo 'PASS greeting after echo'
+
+parallel_echo() {
+  local id=$1 payload status
+  local response="$run_dir/echo-$id.json"
+
+  printf -v payload '{"message":"parallel request %02d"}' "$id"
+  status=$(curl --noproxy '*' -sS --max-time 10 -o "$response" -w '%{http_code} %{content_type}' \
+    -H 'Content-Type: application/json' --data "$payload" "$origin/echo") || return 1
+  [[ "$status" == '200 application/json'* ]] &&
+    cmp -s "$response" <(printf '%s' "$payload")
+}
+
+request_pids=()
+for ((id = 1; id <= 20; id++)); do
+  parallel_echo "$id" &
+  request_pids+=("$!")
+done
+failed=0
+for i in "${!request_pids[@]}"; do
+  if ! wait "${request_pids[$i]}"; then
+    printf 'Parallel echo request %d failed\n' "$((i + 1))" >&2
+    failed=1
+  fi
+done
+(( failed == 0 ))
+echo 'PASS 20 parallel JSON echo requests returned their own bodies'

@@ -17,3 +17,7 @@ Wasmer executable to compare. Functional runs keep logs under
 `.anybuild/suite/`. For load, start `serve.sh` with the same variables and
 explicit per-lane `WASMER_DIR` and `WASMER_CACHE_DIR`. Point pinned Artillery
 2.0.34 at that loopback port with `artillery.yml`.
+
+The functional test also sends 20 concurrent JSON echo requests and
+checks that each response contains its own request body. Codex added
+this check.
