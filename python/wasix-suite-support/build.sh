@@ -27,6 +27,14 @@ grep -Eq '^"python/python" = "=3\.13\.20"$' "$manifest" || {
 mkdir -p .anybuild/suite
 build_tmp=$(mktemp -d .anybuild/suite/package.XXXXXX)
 trap 'rm -rf -- "$build_tmp"' EXIT
+if [[ ${2:-} = --reproducible ]]; then
+    # WebC records volume paths and staged modification times.
+    package_root=.anybuild/local/build
+    package_manifest=$package_root/wasmer.toml
+    sed -E 's|^(".*" = ").*/\.anybuild/local/build/|\1|' "$manifest" > "$package_manifest"
+    find "$package_root" -exec touch -h -d "@946684800" -- {} +
+    manifest=$package_manifest
+fi
 "$wasmer" package build "$manifest" --out "$build_tmp/package.webc"
 mv -f -- "$build_tmp/package.webc" .anybuild/suite/package.webc
 sha256sum .anybuild/suite/package.webc

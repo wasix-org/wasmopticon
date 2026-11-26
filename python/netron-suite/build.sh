@@ -16,4 +16,4 @@ if ! sha256sum --check --status <<< "$sha  $model"; then
     mv -f -- "$tmp" "$model"
 fi
 
-exec "$project/../wasix-suite-support/build.sh" "$project"
+exec "$project/../wasix-suite-support/build.sh" "$project" --reproducible
