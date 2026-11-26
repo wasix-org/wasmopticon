@@ -1,0 +1,6 @@
+[general]
+page-fallback = "/opt/site/demo.html"
+threads-multiplier = 1
+compression = true
+compression-static = true
+cache-control-headers = true

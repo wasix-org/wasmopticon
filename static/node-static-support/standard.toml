@@ -1,0 +1,6 @@
+[general]
+page404 = "404.html"
+threads-multiplier = 1
+compression = true
+compression-static = true
+cache-control-headers = true
