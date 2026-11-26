@@ -1,0 +1,35 @@
+[fixtures."python/wasix-suite-support"]
+skip = "Shared Python build/test implementation. Its callers are discovered separately."
+
+[fixtures."static/node-static-support"]
+skip = "Shared static build/test implementation. Its callers are discovered separately."
+
+[fixtures."static/static-web-server"]
+package = ".suite/package.webc"
+
+[fixtures."static/sws-app-templates"]
+variants = ["excalidraw", "it-tools", "drawdb", "minipaint", "piskel", "cdn-starter"]
+
+[fixtures."static/sws-template-sample"]
+variants = ["app-client-side-router", "duckdb-csv-explorer", "bentopdf"]
+
+[fixtures."php/phpix-starter"]
+profiles = { "workers-1" = { WORKERS = "1" }, "workers-4" = { WORKERS = "4" } }
+
+[fixtures."php/wordpress-mariadb"]
+docker = "direct"
+package_env = "WORDPRESS_WEBC"
+timeout = 540
+
+[fixtures."javascript/postgresql-edgejs"]
+docker = "sudo"
+database_port = true
+timeout = 120
+
+[fixtures."javascript/todo-postgres"]
+docker = "sudo"
+database_port = true
+timeout = 160
+
+[fixtures."python/pandoc-converter-suite"]
+timeout = 240
