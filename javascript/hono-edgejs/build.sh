@@ -18,6 +18,11 @@ fi
 mkdir -p .anybuild/suite
 build_tmp=$(mktemp -d .anybuild/suite/package.XXXXXX)
 trap 'if [[ -e "$build_tmp/package.webc" ]]; then unlink "$build_tmp/package.webc"; fi; rmdir "$build_tmp"' EXIT
-"$WASMER_BIN" package build .anybuild/wasmer/wasmer.toml --out "$build_tmp/package.webc"
+# WebC records local volume paths and staged modification times.
+package_root=.anybuild/local/build
+package_manifest=$package_root/wasmer.toml
+sed -E 's|^(".*" = ").*/\.anybuild/local/build/|\1|' .anybuild/wasmer/wasmer.toml > "$package_manifest"
+find "$package_root" -exec touch -h -d "@946684800" -- {} +
+"$WASMER_BIN" package build "$package_manifest" --out "$build_tmp/package.webc"
 mv -f -- "$build_tmp/package.webc" .anybuild/suite/package.webc
-sha256sum .anybuild/wasmer/wasmer.toml .anybuild/suite/package.webc
+sha256sum "$package_manifest" .anybuild/suite/package.webc

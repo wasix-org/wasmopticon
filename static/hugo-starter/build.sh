@@ -64,6 +64,17 @@ tar -xf ".suite/$hugo_archive" -C "$build_tmp" hugo
 # The upstream sample post is marked as a draft. Include it for the preview.
 "$build_tmp/hugo" --source "$build_tmp/source" --destination "$PWD/$build_tmp/site" \
     --minify --buildDrafts
+# Keep the stylesheet's source map without its temporary build directory.
+python3 - "$build_tmp/site/ananke/css/main.css.map" <<'PYTHON'
+import json
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+source_map = json.loads(path.read_text())
+source_map.pop("sourceRoot", None)
+path.write_text(json.dumps(source_map, separators=(",", ":")) + "\n")
+PYTHON
 
 sws_package=wasmer/static-web-server@=2.44.0
 sws_sha=1e84109da307837d8160d23a77c36403ab44f7ec0c592b1cfe4a5bd79c968e08
@@ -84,5 +95,11 @@ mv -f -- "$build_tmp/upstream/modules/webserver" .suite/webserver.wasm
 "$anybuild" build . --wasmer --wasmer-bin "$wasmer" \
     --config "{\"static_dir\":\"$build_tmp/site\"}"
 mkdir -p .anybuild/suite
-"$wasmer" package build .anybuild/wasmer/wasmer.toml --out "$build_tmp/package.webc"
+# WebC records local volume paths and staged modification times.
+package_root=.anybuild/local/build
+package_manifest=$package_root/wasmer.toml
+sed -E 's#^(".*" = "|source = ").*/\.anybuild/local/build/#\1#' .anybuild/wasmer/wasmer.toml > "$package_manifest"
+find "$package_root" -exec touch -h -d "@946684800" -- {} +
+"$wasmer" package build "$package_manifest" --out "$build_tmp/package.webc"
 mv -f -- "$build_tmp/package.webc" .anybuild/suite/package.webc
+sha256sum "$package_manifest" .anybuild/suite/package.webc
