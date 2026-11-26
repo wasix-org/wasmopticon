@@ -1,10 +1,14 @@
 import os
-from wsgiref.simple_server import make_server
 
 os.environ["DJANGO_SETTINGS_MODULE"] = "suite_settings"
 
 from django.core.management import call_command
+from django.core.servers.basehttp import ThreadedWSGIServer, WSGIRequestHandler
 from mysite.wsgi import application
+
+
+class SuiteServer(ThreadedWSGIServer):
+    request_queue_size = 32
 
 
 if __name__ == "__main__":
@@ -16,5 +20,8 @@ if __name__ == "__main__":
         username="suite-admin",
         email="suite@example.invalid",
     )
-    with make_server(os.environ["HOST"], int(os.environ["PORT"]), application) as server:
+    with SuiteServer(
+        (os.environ["HOST"], int(os.environ["PORT"])), WSGIRequestHandler
+    ) as server:
+        server.set_app(application)
         server.serve_forever()

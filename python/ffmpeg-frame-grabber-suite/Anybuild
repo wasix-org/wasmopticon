@@ -1,0 +1,37 @@
+load("//anybuild:serve.bzl", "build")
+load("//anybuild/tools:python.bzl", "python_config", "python_serve", "python_toolchain")
+
+config = python_config(
+    schema = 1,
+    commands = {"start": "python serve.py"},
+    python_framework = "fastapi",
+    python_main_file = "main.py",
+    python_version = "3.13",
+    uv_version = "0.13.9",
+    python_precompile = False,
+)
+
+tc = python_toolchain(config)
+app = mount("app")
+venv = mount("venv")
+site = venv.path + "/lib/python3.13/site-packages"
+
+# Only stage explicit app inputs and locked wheels for the guest platform.
+guest = build(
+    steps = [
+        use(tc.python, tc.uv),
+        workdir(app.path),
+        copy("main.py"),
+        copy("fetch.py"),
+        copy("static", "static"),
+        copy(".anybuild/inputs/bin", "bin"),
+        copy("serve.py"),
+        copy("requirements-wasix.lock"),
+        run("uvx --from pip==25.3 pip --isolated install --no-index --require-hashes --only-binary=:all: --platform wasix_wasm32 --python-version 3.13 --no-compile --target {} -r requirements-wasix.lock".format(site)),
+    ],
+    serve_deps = [tc.python],
+    app = app,
+    venv = venv,
+)
+
+python_serve(config, guest, name = "ffmpeg-frame-grabber-suite", prepare = [])

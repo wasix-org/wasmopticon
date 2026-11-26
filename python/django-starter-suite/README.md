@@ -11,6 +11,11 @@ creates a fixture-only admin. The test rejects a login without a CSRF
 token, logs in with a valid token, writes and reads an admin group, and
 checks the starter text asset, admin CSS, and a 404.
 
+The threaded Django server also handles 20 simultaneous admin requests.
+Ten create unique groups while ten read the group list. The final list
+must contain all ten new groups and report 11 groups including the
+earlier serial write.
+
 Build with Anybuild 0.33.3 and uvx 0.13.9 on PATH. The WASIX wheel lock uses
 the starter's pinned Django and WhiteNoise versions.
 
