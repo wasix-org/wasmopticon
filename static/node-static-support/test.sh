@@ -182,3 +182,24 @@ case ${EXTRA:-} in
         done
         ;;
 esac
+
+for check in "${ASSET_CHECKS[@]}"; do
+    pattern=${check%%:*}
+    mime=${check#*:}
+    mapfile -t matches < <(python3 - "$site" "$pattern" <<'PY'
+import sys
+from pathlib import Path
+from urllib.parse import quote
+
+site, pattern = Path(sys.argv[1]), sys.argv[2]
+for path in sorted(site.glob(pattern)):
+    if path.is_file():
+        print(quote(path.relative_to(site).as_posix(), safe="/"))
+PY
+    )
+    (( ${#matches[@]} )) || { printf 'No built assets matched %s\n' "$pattern" >&2; exit 1; }
+    for path in "${matches[@]}"; do
+        request 200 "/$path" --head
+        expect_mime "$mime"
+    done
+done
