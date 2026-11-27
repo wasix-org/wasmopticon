@@ -1,0 +1,12 @@
+{
+  "name": "react-stream-edgejs",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
+  }
+}
