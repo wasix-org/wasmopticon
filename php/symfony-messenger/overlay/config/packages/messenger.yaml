@@ -1,0 +1,6 @@
+framework:
+    messenger:
+        transports:
+            fixture: 'doctrine://default?queue_name=fixture'
+        routing:
+            'App\Message\RecordFixture': fixture
