@@ -16,6 +16,14 @@ variants = ["app-client-side-router", "duckdb-csv-explorer", "bentopdf"]
 [fixtures."php/phpix-starter"]
 profiles = { "workers-1" = { WORKERS = "1" }, "workers-4" = { WORKERS = "4" } }
 
+[fixtures."php/phpix-io-suite"]
+profiles = { upload = { PHPIX_IO_MODE = "upload" }, session = { PHPIX_IO_MODE = "session" }, outbound-curl = { PHPIX_IO_MODE = "outbound", PHPIX_IO_CLIENT = "curl" } }
+
+[fixtures."php/laravel-mariadb"]
+docker = "sudo"
+database_port = true
+timeout = 210
+
 [fixtures."php/wordpress-mariadb"]
 docker = "direct"
 package_env = "WORDPRESS_WEBC"
