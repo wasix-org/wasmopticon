@@ -1,11 +1,12 @@
 import json
+import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.error import HTTPError
 from urllib.request import ProxyHandler, Request, build_opener
 
-phase, expected_path, base_url = sys.argv[1:]
+phase, expected_path, target = sys.argv[1:]
 expected_path = Path(expected_path)
 opener = build_opener(ProxyHandler({}))
 
@@ -14,7 +15,7 @@ def request(method, path, status=200, payload=None):
     data = None if payload is None else json.dumps(payload).encode()
     headers = {} if data is None else {"Content-Type": "application/json"}
     try:
-        response = opener.open(Request(base_url + path, data, headers, method=method), timeout=8)
+        response = opener.open(Request(target + path, data, headers, method=method), timeout=8)
     except HTTPError as error:
         response = error
     with response:
@@ -49,8 +50,21 @@ if phase == "write":
     assert utc_row(updated) == {**utc_row(created), "title": "Updated todo", "done": True}, updated
     assert b"<s>Updated todo</s>" in request("GET", "/")
     expected_path.write_text(json.dumps(updated))
-    print("Verified FastAPI todo creation, list, validation, update, and HTML display")
-else:
+    print("Verified FastAPI todo creation, list, validation, update, and HTML display with --volume")
+elif phase == "host":
+    expected = json.loads(expected_path.read_text())
+    output = subprocess.check_output(
+        [
+            "sqlite3", "-init", "/dev/null", "-batch", "-bail", "-readonly", "-json", target,
+            "SELECT id, title, done, created_at FROM todos ORDER BY id;",
+        ],
+        timeout=10,
+    )
+    rows = json.loads(output or "[]")
+    expected["done"] = int(expected["done"])
+    assert [utc_row(row) for row in rows] == [utc_row(expected)], (rows, expected)
+    print("Verified the exact committed todo row with host sqlite3 after guest shutdown")
+elif phase == "verify":
     expected = json.loads(expected_path.read_text())
     assert request("GET", todos) == [expected]
     assert b"<s>Updated todo</s>" in request("GET", "/")
@@ -58,4 +72,6 @@ else:
     assert request("DELETE", item, 204) == b""
     assert request("GET", todos) == []
     assert request("DELETE", item, 404) == {"detail": "Todo not found"}
-    print("Verified SQLite persistence across restart, delete, and missing-item 404")
+    print("Verified restart readback with legacy --mapdir, delete, and missing-item 404")
+else:
+    sys.exit(f"Unknown check phase: {phase}")

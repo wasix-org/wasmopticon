@@ -19,3 +19,17 @@ WebCs from the offline registry staged by the build. The test chooses a free
 loopback port when `PORT` is unset and tests greeting JSON, the OpenAPI
 schema, and the expected 404. For the Artillery 2.0.34 scenario, run
 `PORT=38381 WASMER_BIN=/path/to/wasmer ./serve.sh` in a dedicated process.
+
+## SIGTERM shutdown check
+
+Codex added a separate lifecycle check for the same FastAPI WebC. It
+sends SIGTERM to Wasmer's host PID after verifying the greeting route.
+It checks for Uvicorn's lifespan shutdown, a same-port rebind, and an
+exit status of 0 or SIGTERM. The default shutdown deadline is 10 seconds.
+
+```sh
+WASMER_BIN=/path/to/wasmer PORT=18133 SHUTDOWN_TIMEOUT=10 ./test-shutdown.sh
+```
+
+The check prints the exact process status and keeps the server log
+under `.anybuild/suite` for comparison between runtimes.
