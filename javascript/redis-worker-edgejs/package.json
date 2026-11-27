@@ -1,0 +1,12 @@
+{
+  "name": "redis-worker-edgejs",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node main.cjs"
+  },
+  "dependencies": {
+    "bullmq": "5.81.6",
+    "ioredis": "5.11.1"
+  }
+}
