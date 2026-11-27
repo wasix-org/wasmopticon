@@ -1,0 +1,25 @@
+config:
+  target: ws://127.0.0.1:38382/api/ws
+  phases:
+    - duration: 30
+      arrivalCount: 15
+      maxVusers: 20
+  ws:
+    timeout: 3
+
+scenarios:
+  - name: WebSocket echo session
+    engine: ws
+    flow:
+      - send:
+          payload: "1|Hello Wasmer"
+          match:
+            regexp: '^1\|Hello Wasmer$'
+            value: "1|Hello Wasmer"
+      - think: 5
+      - send:
+          payload: '2|{"message":"echo"}'
+          match:
+            regexp: '^2\|\{"message":"echo"\}$'
+            value: '2|{"message":"echo"}'
+      - think: 5

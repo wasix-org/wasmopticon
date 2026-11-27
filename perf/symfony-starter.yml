@@ -1,0 +1,40 @@
+config:
+  target: http://127.0.0.1:18432
+  phases:
+    - duration: 30
+      arrivalRate: 1
+      maxVusers: 100
+  http:
+    timeout: 3
+    pool: 16
+    extendedMetrics: true
+    defaults:
+      headers:
+        Accept-Encoding: identity
+  plugins:
+    expect:
+      reportFailuresAsErrors: true
+      formatter: prettyError
+
+scenarios:
+  - name: Starter page, framework API and UI asset
+    flow:
+      - get:
+          followRedirect: false
+          url: /
+          expect:
+            - statusCode: 200
+            - matchesRegexp: 'Your Symfony app is live on Wasmer Edge'
+      - get:
+          followRedirect: false
+          url: /api/hello
+          expect:
+            - statusCode: 200
+            - contentType: application/json
+            - jmespath: "message == 'Hello from Symfony on Wasmer Edge' && symfony == '7.4.23'"
+      - get:
+          followRedirect: false
+          url: /starter-ui.js
+          expect:
+            - statusCode: 200
+            - matchesRegexp: 'wasmer-card'

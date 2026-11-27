@@ -1,0 +1,30 @@
+config:
+  target: http://127.0.0.1:38383
+  phases:
+    - duration: 30
+      arrivalRate: 1
+      maxVusers: 20
+  http:
+    timeout: 3
+    pool: 16
+    extendedMetrics: true
+  plugins:
+    expect:
+      reportFailuresAsErrors: true
+      formatter: prettyError
+
+scenarios:
+  - name: Viewer and ONNX model
+    flow:
+      - get:
+          followRedirect: false
+          url: /
+          expect:
+            - statusCode: 200
+            - matchesRegexp: '/data/tiny-classifier\.onnx'
+      - get:
+          followRedirect: false
+          url: /data/tiny-classifier.onnx
+          expect:
+            - statusCode: 200
+            - contentType: application/octet-stream

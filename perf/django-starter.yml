@@ -1,0 +1,69 @@
+config:
+  target: http://127.0.0.1:18430
+  phases:
+    - duration: 30
+      arrivalRate: 1
+      maxVusers: 12
+  http:
+    timeout: 8
+    pool: 16
+    extendedMetrics: true
+    defaults:
+      headers:
+        Accept-Encoding: identity
+  plugins:
+    expect:
+      reportFailuresAsErrors: true
+      formatter: prettyError
+
+scenarios:
+  - name: Django admin SQLite group write and read
+    flow:
+      - get:
+          followRedirect: false
+          url: /admin/login/?next=/admin/
+          capture:
+            regexp: 'name="csrfmiddlewaretoken" value="([^"]+)"'
+            group: 1
+            as: loginToken
+          expect:
+            - statusCode: 200
+            - matchesRegexp: 'Django administration'
+      - post:
+          followRedirect: false
+          url: /admin/login/?next=/admin/
+          form:
+            username: suite-admin
+            password: local-fixture-password
+            csrfmiddlewaretoken: '{{ loginToken }}'
+            next: /admin/
+          expect:
+            - statusCode: 302
+            - headerEquals: [location, /admin/]
+      - get:
+          followRedirect: false
+          url: /admin/auth/group/add/
+          capture:
+            regexp: 'name="csrfmiddlewaretoken" value="([^"]+)"'
+            group: 1
+            as: groupToken
+          expect:
+            - statusCode: 200
+            - matchesRegexp: 'Add group'
+      - post:
+          followRedirect: false
+          url: /admin/auth/group/add/
+          form:
+            name: 'wasix-perf-{{ $uuid }}'
+            csrfmiddlewaretoken: '{{ groupToken }}'
+          expect:
+            - statusCode: 302
+            - headerEquals: [location, /admin/auth/group/]
+      - get:
+          followRedirect: false
+          url: /admin/auth/group/
+          qs:
+            q: 'wasix-perf-{{ $uuid }}'
+          expect:
+            - statusCode: 200
+            - matchesRegexp: '>wasix-perf-{{ $uuid }}</a>'

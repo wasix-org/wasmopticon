@@ -1,0 +1,53 @@
+config:
+  target: http://127.0.0.1:18431
+  phases:
+    - duration: 30
+      arrivalRate: 1
+      maxVusers: 100
+  http:
+    timeout: 3
+    pool: 16
+    extendedMetrics: true
+    defaults:
+      headers:
+        Accept-Encoding: identity
+  plugins:
+    expect:
+      reportFailuresAsErrors: true
+      formatter: prettyError
+
+scenarios:
+  - name: Framework status and SQLite round trip
+    flow:
+      - get:
+          followRedirect: false
+          url: /api/status
+          expect:
+            - statusCode: 200
+            - contentType: application/json
+            - jmespath: "status == 'ok' && framework == 'Laravel'"
+      - get:
+          followRedirect: false
+          url: /suite/form
+          capture:
+            regexp: 'name="_token" value="([A-Za-z0-9]{40})"'
+            group: 1
+            as: csrfToken
+          expect:
+            - statusCode: 200
+            - matchesRegexp: '<title>WASIX Laravel form</title>'
+      - post:
+          followRedirect: false
+          url: /suite/form
+          form:
+            _token: '{{ csrfToken }}'
+            name: WASIX performance fixture
+          expect:
+            - statusCode: 302
+      - get:
+          followRedirect: false
+          url: /suite/entry
+          expect:
+            - statusCode: 200
+            - contentType: application/json
+            - jmespath: "name == 'WASIX performance fixture' && ends_with(email, '@suite.example')"

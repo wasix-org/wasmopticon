@@ -1,0 +1,18 @@
+load("//anybuild/tools:php.bzl", "php_build", "php_config", "php_serve")
+
+config = php_config(
+    schema = 1,
+    php_version = "8.4",
+    php_architecture = "32-bit",
+    php_public_dir = "public",
+    composer_enable = False,
+    phpix = True,
+    phpix_worker_threads = 1,
+)
+
+build = php_build(
+    config,
+    extra_ignore = ["Anybuild", "README.md", "*.sh", "*.tsv", "artillery.yml"],
+)
+
+php_serve(config, build, name = "laravel-mariadb", extra_commands = {"local": "phpix", "local-php": "php"})

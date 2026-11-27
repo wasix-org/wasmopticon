@@ -1,0 +1,30 @@
+load("//anybuild:serve.bzl", "build", "serve")
+load("//anybuild/tools:staticfile.bzl", "staticfile_config")
+
+config = staticfile_config(schema = 1, static_dir = ".suite/source/public", sws_version = "2.44.0")
+site = mount("site")
+server = mount("static_runtime")
+
+artifact = build(
+    steps = [
+        workdir(site.path),
+        copy(".suite/source/public", "."),
+        workdir(server.path),
+        copy(".suite/webserver.wasm", "webserver.wasm"),
+        copy(".suite/source/settings/config.toml", "sws.toml"),
+        run("sed -i -E '/^(host|port|root)[[:space:]]*=/d' sws.toml", group = "configure"),
+    ],
+    mounts = [site, server],
+)
+
+serve(
+    config,
+    artifact,
+    name = "sws-app-templates",
+    commands = {
+        "start": "{server}/webserver.wasm --root={site} --config-file={server}/sws.toml".format(
+            server = server.serve_path,
+            site = site.serve_path,
+        ),
+    },
+)

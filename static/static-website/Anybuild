@@ -1,0 +1,28 @@
+load("//anybuild:serve.bzl", "build", "serve")
+load("//anybuild/tools:staticfile.bzl", "staticfile_build", "staticfile_config")
+
+# Anybuild maps the 2.38.0 tool selection to the Registry's exact 1.1.0 package.
+config = staticfile_config(schema = 1, static_dir = ".suite/template/public", sws_version = "2.38.0")
+site = staticfile_build(config)
+settings = mount("static_config")
+
+artifact = build(
+    steps = site.steps + [
+        workdir(settings.path),
+        copy(".suite/sws.toml", "sws.toml"),
+    ],
+    mounts = site.mounts + [settings],
+)
+
+serve(
+    config,
+    artifact,
+    name = "static-website-template-suite",
+    serve_deps = [dep("static-web-server", config.sws_version)],
+    commands = {
+        "start": "static-web-server --root={root} --config-file={settings}/sws.toml".format(
+            root = site.static_app.serve_path,
+            settings = settings.serve_path,
+        ),
+    },
+)

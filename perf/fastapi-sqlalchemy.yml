@@ -1,0 +1,91 @@
+config:
+  target: http://127.0.0.1:18434
+  phases:
+    - duration: 30
+      arrivalRate: 1
+      maxVusers: 16
+  http:
+    timeout: 5
+    pool: 16
+    extendedMetrics: true
+    defaults:
+      headers:
+        Accept-Encoding: identity
+  plugins:
+    expect:
+      reportFailuresAsErrors: true
+      formatter: prettyError
+      useOnlyRequestNames: true
+
+scenarios:
+  - name: SQLite todo lifecycle
+    flow:
+      - post:
+          name: create todo
+          followRedirect: false
+          url: /api/todos
+          json:
+            title: 'artillery-{{ $uuid }}'
+          capture:
+            json: $.id
+            as: todoId
+          match:
+            json: $.title
+            value: 'artillery-{{ $uuid }}'
+          expect:
+            - statusCode: 201
+            - contentType: json
+            - jmespath: "id > `0` && done == `false` && type(created_at) == 'string'"
+      - get:
+          name: read created todo
+          followRedirect: false
+          url: /api/todos
+          match:
+            json: '$[?(@.id == {{ todoId }} && @.done == false)].title'
+            value: 'artillery-{{ $uuid }}'
+          expect:
+            - statusCode: 200
+            - contentType: json
+      - patch:
+          name: update todo
+          followRedirect: false
+          url: '/api/todos/{{ todoId }}'
+          json:
+            title: 'completed-{{ $uuid }}'
+            done: true
+          match:
+            json: $.id
+            value: '{{ todoId }}'
+          expect:
+            - statusCode: 200
+            - contentType: json
+            - jmespath: 'done == `true`'
+      - get:
+          name: read updated todo
+          followRedirect: false
+          url: /api/todos
+          match:
+            json: '$[?(@.id == {{ todoId }} && @.done == true)].title'
+            value: 'completed-{{ $uuid }}'
+          expect:
+            - statusCode: 200
+            - contentType: json
+      - delete:
+          name: delete todo
+          followRedirect: false
+          url: '/api/todos/{{ todoId }}'
+          expect:
+            - statusCode: 204
+      - get:
+          name: verify deletion
+          followRedirect: false
+          url: /api/todos
+          # SQLite can reuse a deleted ID. Check the unique title in the body.
+          match:
+            regexp: '^(\[)(?!.*"title"\s*:\s*"(?:artillery|completed)-{{ $uuid }}")'
+            group: 1
+            value: '['
+          expect:
+            - statusCode: 200
+            - contentType: json
+            - jmespath: "type(@) == 'array'"

@@ -1,0 +1,8 @@
+baseURL = "https://example.test/"
+title = "WASIX Hugo Themes"
+theme = "fixture"
+languageCode = "en-us"
+
+[taxonomies]
+tag = "tags"
+category = "categories"

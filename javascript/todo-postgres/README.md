@@ -108,3 +108,28 @@ Useful status commands:
 wasmer app info wasmer-tests/todo-js-postgres
 wasmer app logs wasmer-tests/todo-js-postgres
 ```
+
+## Packaged compatibility test
+
+The packaging and test additions were authored by Codex. The self-contained
+`tsconfig.json` mirrors Astro 7.2.0's strict preset so Rolldown can read it from
+Anybuild's staging layout.
+
+Build with Node 26.13.1, npm 11.20.0, and Anybuild 0.33.3. Use the local WebC
+registry in `registry.sha256`. Pull the pinned PostgreSQL image before testing.
+The test starts a disposable loopback-only container with `sudo docker`, runs
+the packaged migration, and checks create, toggle, and delete in PostgreSQL
+and in the server-rendered page.
+
+The compatibility build embeds a fixed, public test key for reproducibility.
+Use the deployment workflow above with a private key or Astro's generated
+key when deploying.
+
+```sh
+sudo docker pull docker.io/library/postgres@sha256:58b1ad1807d86ca43d0e37fded9f0a899a7ab8763fa9576a63059a52de223e1b
+WASMER_BIN=/path/to/wasmer-v1 ./build.sh
+REGISTRY_DIR=/path/to/local/registry WASMER_BIN=/path/to/wasmer-v1 \
+  WASIX_LANE=v1 PORT=18300 DB_PORT=18301 ./test.sh
+REGISTRY_DIR=/path/to/local/registry WASMER_BIN=/path/to/wasmer-v2 \
+  WASIX_LANE=v2 PORT=18300 DB_PORT=18301 ./test.sh
+```

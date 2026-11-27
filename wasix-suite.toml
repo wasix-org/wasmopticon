@@ -1,0 +1,87 @@
+[fixtures."python/wasix-suite-support"]
+skip = "Shared Python build/test implementation. Its callers are discovered separately."
+
+[fixtures."static/node-static-support"]
+skip = "Shared static build/test implementation. Its callers are discovered separately."
+
+[fixtures."static/static-web-server"]
+package = ".suite/package.webc"
+
+[fixtures."static/sws-app-templates"]
+variants = ["excalidraw", "it-tools", "drawdb", "minipaint", "piskel", "cdn-starter"]
+
+[fixtures."static/sws-template-sample"]
+variants = ["app-client-side-router", "duckdb-csv-explorer", "bentopdf"]
+
+[fixtures."php/phpix-starter"]
+profiles = { "workers-1" = { WORKERS = "1" }, "workers-4" = { WORKERS = "4" } }
+
+[fixtures."php/phpix-io-suite"]
+profiles = { upload = { PHPIX_IO_MODE = "upload" }, session = { PHPIX_IO_MODE = "session" }, outbound-curl = { PHPIX_IO_MODE = "outbound", PHPIX_IO_CLIENT = "curl" } }
+
+[fixtures."php/laravel-mariadb"]
+docker = "sudo"
+database_port = true
+timeout = 210
+
+[fixtures."php/wordpress-mariadb"]
+docker = "direct"
+package_env = "WORDPRESS_WEBC"
+timeout = 540
+
+[fixtures."javascript/postgresql-edgejs"]
+docker = "sudo"
+database_port = true
+timeout = 120
+
+[fixtures."javascript/todo-postgres"]
+docker = "sudo"
+database_port = true
+timeout = 160
+
+[fixtures."javascript/mariadb-edgejs"]
+docker = "sudo"
+database_port = true
+timeout = 115
+
+[fixtures."javascript/redis-worker-edgejs"]
+docker = "sudo"
+database_port = true
+timeout = 150
+
+[fixtures."javascript/cron-edgejs"]
+timeout = 90
+
+[fixtures."static/astro-static-starter"]
+timeout = 180
+
+[fixtures."python/pandoc-converter-suite"]
+timeout = 240
+
+[fixtures."python/django-mariadb-suite"]
+docker = "sudo"
+database_port = true
+timeout = 210
+
+[fixtures."python/fastapi-redis-worker-suite"]
+docker = "sudo"
+database_port = true
+timeout = 150
+
+[fixtures."python/fastapi-scheduled-jobs-suite"]
+timeout = 150
+
+[fixtures."python/fastapi-redis-cache-suite"]
+docker = "sudo"
+database_port = true
+timeout = 150
+
+[fixtures."php/symfony-messenger"]
+timeout = 145
+
+[fixtures."php/laravel-queue-schedule"]
+timeout = 145
+
+[fixtures."static/hugo-theme-sample"]
+variants = ["mainroad", "ink", "paper-mod", "m10c", "photophobia"]
+timeout = 95

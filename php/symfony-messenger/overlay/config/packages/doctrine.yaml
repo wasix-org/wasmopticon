@@ -1,0 +1,4 @@
+doctrine:
+    dbal:
+        driver: pdo_sqlite
+        path: '%env(SUITE_DB_PATH)%'

@@ -1,0 +1,29 @@
+load("//anybuild:serve.bzl", "build", "serve")
+load("//anybuild/tools:staticfile.bzl", "staticfile_config")
+
+config = staticfile_config(schema = 1, static_dir = ".suite/source/build", sws_version = "2.44.0")
+site = mount("site")
+server = mount("static_runtime")
+
+artifact = build(
+    steps = [
+        workdir(site.path),
+        run("bash -ec 'site=\"$PWD\"; cd \"$SUITE_SOURCE\"; npm ci --no-audit --no-fund; npm run build; cp -a \"$SUITE_OUTPUT/.\" \"$site/\"'", group = "build"),
+        workdir(server.path),
+        copy(".suite/webserver.wasm", "webserver.wasm"),
+        copy(".suite/sws.toml", "sws.toml"),
+    ],
+    mounts = [site, server],
+)
+
+serve(
+    config,
+    artifact,
+    name = "docusaurus-starter",
+    commands = {
+        "start": "{server}/webserver.wasm --root={site} --config-file={server}/sws.toml".format(
+            server = server.serve_path,
+            site = site.serve_path,
+        ),
+    },
+)

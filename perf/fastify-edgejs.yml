@@ -1,0 +1,56 @@
+config:
+  target: http://127.0.0.1:18433
+  phases:
+    - duration: 30
+      arrivalRate: 1
+      maxVusers: 20
+  http:
+    timeout: 3
+    pool: 16
+    extendedMetrics: true
+    defaults:
+      headers:
+        Accept-Encoding: identity
+  plugins:
+    expect:
+      reportFailuresAsErrors: true
+      formatter: prettyError
+
+scenarios:
+  - name: Greeting and JSON route
+    weight: 3
+    flow:
+      - get:
+          followRedirect: false
+          url: /
+          expect:
+            - statusCode: 200
+            - matchesRegexp: '^Hello from Fastify on Wasmer Edge$'
+            - headerEquals: [x-fixture, js-fastify]
+      - get:
+          followRedirect: false
+          url: /json
+          expect:
+            - statusCode: 200
+            - jmespath: "framework == 'fastify'"
+  - name: POST echo and missing route
+    weight: 1
+    flow:
+      - post:
+          followRedirect: false
+          url: /echo
+          headers:
+            X-Probe: from-client
+          json:
+            message: paired Edge.js round trip
+            values: [1, true]
+          expect:
+            - statusCode: 200
+            - jmespath: "body.message == 'paired Edge.js round trip' && body.values == `[1,true]` && probe == 'from-client'"
+      - get:
+          followRedirect: false
+          url: /missing
+          expect:
+            - statusCode: 404
+            - jmespath: "error == 'Not Found'"
+            - headerEquals: [x-fixture, js-fastify]
