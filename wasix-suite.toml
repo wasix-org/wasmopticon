@@ -39,5 +39,49 @@ docker = "sudo"
 database_port = true
 timeout = 160
 
+[fixtures."javascript/mariadb-edgejs"]
+docker = "sudo"
+database_port = true
+timeout = 115
+
+[fixtures."javascript/redis-worker-edgejs"]
+docker = "sudo"
+database_port = true
+timeout = 150
+
+[fixtures."javascript/cron-edgejs"]
+timeout = 90
+
+[fixtures."static/astro-static-starter"]
+timeout = 180
+
 [fixtures."python/pandoc-converter-suite"]
 timeout = 240
+
+[fixtures."python/django-mariadb-suite"]
+docker = "sudo"
+database_port = true
+timeout = 210
+
+[fixtures."python/fastapi-redis-worker-suite"]
+docker = "sudo"
+database_port = true
+timeout = 150
+
+[fixtures."python/fastapi-scheduled-jobs-suite"]
+timeout = 150
+
+[fixtures."python/fastapi-redis-cache-suite"]
+docker = "sudo"
+database_port = true
+timeout = 150
+
+[fixtures."php/symfony-messenger"]
+timeout = 145
+
+[fixtures."php/laravel-queue-schedule"]
+timeout = 145
+
+[fixtures."static/hugo-theme-sample"]
+variants = ["mainroad", "ink", "paper-mod", "m10c", "photophobia"]
+timeout = 95
