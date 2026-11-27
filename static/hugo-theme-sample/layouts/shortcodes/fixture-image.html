@@ -1,0 +1,4 @@
+{{ with resources.Get "fixture.png" }}
+  {{ $image := .Resize "160x" }}
+  <img src="{{ $image.RelPermalink }}" width="{{ $image.Width }}" height="{{ $image.Height }}" alt="Fixture screenshot">
+{{ end }}
